@@ -124,8 +124,9 @@ numeric_cols = ['P', 'N', 'N_CAS', 'N_CON', 'Z', 'OR', 'BETA', 'LOG_ODDS', 'INFO
 
 def read_header(fh):
     '''Read the first line of a file and returns a list with the column names.'''
-    (openfunc, compression) = get_compression(fh)
-    return [x.rstrip('\n') for x in openfunc(fh).readline().split()]
+    opened_file = open_file(fh)
+
+    return [x.rstrip('\n') for x in opened_file.readline().split()]
 
 
 def get_cname_map(flag, default, ignore):
@@ -147,22 +148,31 @@ def get_cname_map(flag, default, ignore):
         {x: default[x] for x in default if x not in clean_ignore + list(flag.keys())})
     return cname_map
 
-
-def get_compression(fh):
+def get_compression(file_handle):
     '''
-    Read filename suffixes and figure out whether it is gzipped,bzip2'ed or not compressed
+    Load file and determine the compression type
     '''
-    if fh.endswith('gz'):
+    if file_handle.endswith('gz'):
         compression = 'gzip'
-        openfunc = gzip.open
-    elif fh.endswith('bz2'):
+    elif file_handle.endswith('bz2'):
         compression = 'bz2'
-        openfunc = bz2.BZ2File
     else:
-        openfunc = open
         compression = None
 
-    return openfunc, compression
+    return compression
+
+def open_file(fh):
+    '''
+    Read filename suffixes and load the file correctly. figure out whether it is gzipped,bzip2'ed or not compressed
+    '''
+    if fh.endswith('gz'):
+        openfile = gzip.open(fh, "rt")
+    elif fh.endswith('bz2'):
+        openfile = bz2.BZ2File(fh)
+    else:
+        openfile = open(fh, "r")
+
+    return openfile
 
 
 def clean_header(header):
@@ -656,7 +666,7 @@ def munge_sumstats(args, p=True):
         if args.merge_alleles:
             log.log(
                 'Reading list of SNPs for allele merge from {F}'.format(F=args.merge_alleles))
-            (openfunc, compression) = get_compression(args.merge_alleles)
+            compression = get_compression(args.merge_alleles)
             merge_alleles = pd.read_csv(args.merge_alleles, compression=compression, header=0,
                                         delim_whitespace=True, na_values='.')
             if any(x not in merge_alleles.columns for x in ["SNP", "A1", "A2"]):
@@ -672,7 +682,7 @@ def munge_sumstats(args, p=True):
         else:
             merge_alleles = None
 
-        (openfunc, compression) = get_compression(args.sumstats)
+        compression = get_compression(args.sumstats)
 
         # figure out which columns are going to involve sign information, so we can ensure
         # they're read as floats
