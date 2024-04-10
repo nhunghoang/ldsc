@@ -441,7 +441,7 @@ def allele_merge(dat, alleles, log):
     a1234 = dat.A1[ii] + dat.A2[ii] + dat.MA[ii]
     match = a1234.apply(lambda y: y in sumstats.MATCH_ALLELES)
     jj = pd.Series(np.zeros(len(dat), dtype=bool))
-    jj[ii] = match
+    jj.loc[ii] = match # updated this to a modern pandas syntax to get rid of an error about incompatible dtypes
     old = ii.sum()
     n_mismatch = (~match).sum()
     if n_mismatch < old:
@@ -668,7 +668,7 @@ def munge_sumstats(args, p=True):
                 'Reading list of SNPs for allele merge from {F}'.format(F=args.merge_alleles))
             compression = get_compression(args.merge_alleles)
             merge_alleles = pd.read_csv(args.merge_alleles, compression=compression, header=0,
-                                        delim_whitespace=True, na_values='.')
+                                        sep='\s+', na_values='.')
             if any(x not in merge_alleles.columns for x in ["SNP", "A1", "A2"]):
                 raise ValueError(
                     '--merge-alleles must have columns SNP, A1, A2.')
@@ -687,7 +687,7 @@ def munge_sumstats(args, p=True):
         # figure out which columns are going to involve sign information, so we can ensure
         # they're read as floats
         signed_sumstat_cols = [k for k,v in list(cname_translation.items()) if v=='SIGNED_SUMSTAT']
-        dat_gen = pd.read_csv(args.sumstats, delim_whitespace=True, header=0,
+        dat_gen = pd.read_csv(args.sumstats, sep='\s+', header=0,
                 compression=compression, usecols=list(cname_translation.keys()),
                 na_values=['.', 'NA'], iterator=True, chunksize=args.chunksize,
                 dtype={c:np.float64 for c in signed_sumstat_cols})

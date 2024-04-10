@@ -142,14 +142,18 @@ def _read_w_ld(args, log):
 
 def _read_chr_split_files(chr_arg, not_chr_arg, log, noun, parsefunc, **kwargs):
     '''Read files split across 22 chromosomes (annot, ref_ld, w_ld).'''
+
     try:
         if not_chr_arg:
             log.log('Reading {N} from {F} ... ({p})'.format(N=noun, F=not_chr_arg, p=parsefunc.__name__))
             out = parsefunc(_splitp(not_chr_arg), **kwargs)
         elif chr_arg:
+
             f = ps.sub_chr(chr_arg, '[1-22]')
             log.log('Reading {N} from {F} ... ({p})'.format(N=noun, F=f, p=parsefunc.__name__))
+
             out = parsefunc(_splitp(chr_arg), _N_CHR, **kwargs)
+
     except ValueError as e:
         log.log('Error parsing {N}.'.format(N=noun))
         raise e
@@ -458,7 +462,7 @@ def _get_rg_table(rg_paths, RG, args):
     if args.samp_prev is not None and \
             args.pop_prev is not None and \
             all((i is not None for i in args.samp_prev)) and \
-            all((i is not None for it in args.pop_prev)):
+            all((it is not None for it in args.pop_prev)):
 
         c = list(map(lambda x, y: reg.h2_obs_to_liab(1, x, y), args.samp_prev[1:], args.pop_prev[1:]))
         x['h2_liab'] = list(map(lambda x, y: x * y, c, list(map(t('tot'), list(map(t('hsq2'), RG))))))

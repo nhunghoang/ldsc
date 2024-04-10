@@ -18,7 +18,7 @@ def series_eq(x, y):
 
 
 def read_csv(fh, **kwargs):
-    return pd.read_csv(fh, delim_whitespace=True, na_values='.', **kwargs)
+    return pd.read_csv(fh, sep='\s+', na_values='.', **kwargs)
 
 
 def sub_chr(s, chrom):
@@ -98,6 +98,7 @@ def sumstats(fh, alleles=False, dropna=True):
 
 def ldscore_fromlist(flist, num=None):
     '''Sideways concatenation of a list of LD Score files.'''
+
     ldscore_array = []
     for i, fh in enumerate(flist):
         y = ldscore(fh, num)
