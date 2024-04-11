@@ -599,7 +599,7 @@ if __name__ == '__main__':
         log.log(header)
         log.log('Beginning analysis at {T}'.format(T=time.ctime()))
         start_time = time.time()
-        print(args.ref_ld)
+
         if args.n_blocks <= 1:
             raise ValueError('--n-blocks must be an integer > 1.')
         if args.bfile is not None:

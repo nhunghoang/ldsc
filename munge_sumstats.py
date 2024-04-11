@@ -441,7 +441,7 @@ def allele_merge(dat, alleles, log):
     a1234 = dat.A1[ii] + dat.A2[ii] + dat.MA[ii]
     match = a1234.apply(lambda y: y in sumstats.MATCH_ALLELES)
     jj = pd.Series(np.zeros(len(dat), dtype=bool))
-    jj.loc[ii] = match # updated this to a modern pandas syntax to get rid of an error about incompatible dtypes
+    jj.loc[ii] = match 
     old = ii.sum()
     n_mismatch = (~match).sum()
     if n_mismatch < old:

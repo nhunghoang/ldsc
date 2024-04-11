@@ -17,11 +17,15 @@ setup(name='ldsc',
       packages=['ldscore'],
       scripts=['ldsc.py', 'munge_sumstats.py', 'make_annot.py'],
       install_requires = [
-            'bitarray>=2.6.0',
-            'nose>=1.3.7', # this is only a test dep
-            'pybedtools>=0.9.0',
-            'scipy>=1.9.2',
-            'numpy>=1.23.3',
-            'pandas>=1.5.0'
+            'bitarray==2.6.0',
+            'nose==1.3.7',
+            'numpy==1.23.3',
+            'pandas==1.5.0',
+            'pybedtools==0.9.1',
+            'pysam==0.19.1',
+            'python-dateutil==2.8.2',
+            'pytz==2022.4',
+            'scipy==1.9.2',
+            'six==1.16.0'
       ]
 )
