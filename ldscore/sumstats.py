@@ -6,6 +6,8 @@ into memory and checking that the input makes sense. There is no math here. LD S
 regression is implemented in the regressions module.
 '''
 
+from pathlib import Path
+from typing import Union
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -48,9 +50,13 @@ FLIP_ALLELES = {''.join(x):
                 for x in MATCH_ALLELES}
 
 
-def _splitp(fstr):
-    flist = fstr.split(',')
-    flist = [os.path.expanduser(os.path.expandvars(x)) for x in flist]
+def _splitp(fstr: Union[str,Path]):
+    if isinstance(fstr, str):
+        flist = fstr.split(',')
+        flist = [Path(x) for x in flist]
+    else:
+        flist = [fstr]
+
     return flist
 
 
@@ -105,7 +111,7 @@ def _read_M(args, log, n_annot):
     '''Read M (--M, --M-file, etc).'''
     if args.M:
         try:
-            M_annot = [float(x) for x in _splitp(args.M)]
+            M_annot = [float(x) for x in args.M.split(",")]
         except ValueError as e:
             raise ValueError('Could not cast --M to float: ' + str(e.args))
     else:
@@ -127,7 +133,7 @@ def _read_M(args, log, n_annot):
 
 def _read_w_ld(args, log):
     '''Read regression SNP LD.'''
-    if (args.w_ld and ',' in args.w_ld) or (args.w_ld_chr and ',' in args.w_ld_chr):
+    if (args.w_ld and ',' in args.w_ld) or (args.w_ld_chr and ',' in args.w_ld_chr.name):
         raise ValueError(
             '--w-ld must point to a single fileset (no commas allowed).')
     w_ld = _read_chr_split_files(args.w_ld_chr, args.w_ld, log,
@@ -148,7 +154,7 @@ def _read_chr_split_files(chr_arg, not_chr_arg, log, noun, parsefunc, **kwargs):
             log.log('Reading {N} from {F} ... ({p})'.format(N=noun, F=not_chr_arg, p=parsefunc.__name__))
             out = parsefunc(_splitp(not_chr_arg), **kwargs)
         elif chr_arg:
-
+            
             f = ps.sub_chr(chr_arg, '[1-22]')
             log.log('Reading {N} from {F} ... ({p})'.format(N=noun, F=f, p=parsefunc.__name__))
 
@@ -161,7 +167,7 @@ def _read_chr_split_files(chr_arg, not_chr_arg, log, noun, parsefunc, **kwargs):
     return out
 
 
-def _read_sumstats(args, log, fh, alleles=False, dropna=False):
+def _read_sumstats(args, log, fh: Path, alleles=False, dropna=False):
     '''Parse summary statistics.'''
     log.log('Reading summary statistics from {S} ...'.format(S=fh))
     sumstats = ps.sumstats(fh, alleles=alleles, dropna=dropna)
@@ -396,7 +402,7 @@ def estimate_rg(args, log):
         args.intercept_h2 = [1 for _ in range(n_pheno)]
         args.intercept_gencov = [0 for _ in range(n_pheno)]
     p1 = rg_paths[0]
-    out_prefix = args.out + rg_files[0]
+    out_prefix = Path(args.out)
     M_annot, w_ld_cname, ref_ld_cnames, sumstats, _ = _read_ld_sumstats(args, log, p1,
                                                                         alleles=True, dropna=True)
     RG = []
@@ -414,11 +420,10 @@ def estimate_rg(args, log):
             rghat = _rg(loop, args, log, M_annot, ref_ld_cnames, w_ld_cname, i)
             RG.append(rghat)
             _print_gencor(args, log, rghat, ref_ld_cnames, i, rg_paths, i == 0)
-            out_prefix_loop = out_prefix + '_' + rg_files[i + 1]
             if args.print_cov:
-                _print_rg_cov(rghat, out_prefix_loop, log)
+                _print_rg_cov(rghat, f"{out_prefix}.cov", log)
             if args.print_delete_vals:
-                _print_rg_delete_values(rghat, out_prefix_loop, log)
+                _print_rg_delete_values(rghat, f"{out_prefix}.delete_vals", log)
 
         except Exception:  # keep going if phenotype 50/100 causes an error
             msg = 'ERROR computing rg for phenotype {I}/{N}, from file {F}.'
@@ -429,7 +434,7 @@ def estimate_rg(args, log):
                 RG.append(None)
 
     log.log('\nSummary of Genetic Correlation Results\n' +
-            _get_rg_table(rg_paths, RG, args))
+            _get_rg_table(rg_paths, RG, out_prefix, args))
     return RG
 
 
@@ -449,8 +454,10 @@ def _read_other_sumstats(args, log, p2, sumstats, ref_ld_cnames):
     return loop
 
 
-def _get_rg_table(rg_paths, RG, args):
+def _get_rg_table(rg_paths, RG, output_prefix: Path, args):
     '''Print a table of genetic correlations.'''
+    output_path = output_prefix.parent / f"{output_prefix.name}.rg_results"
+
     t = lambda attr: lambda obj: getattr(obj, attr, 'NA')
     x = pd.DataFrame()
     x['p1'] = [rg_paths[0] for i in range(1, len(rg_paths))]
@@ -475,6 +482,7 @@ def _get_rg_table(rg_paths, RG, args):
     x['h2_int_se'] = list(map(t('intercept_se'), list(map(t('hsq2'), RG))))
     x['gcov_int'] = list(map(t('intercept'), list(map(t('gencov'), RG))))
     x['gcov_int_se'] = list(map(t('intercept_se'), list(map(t('gencov'), RG))))
+    x.to_csv(output_path, sep="\t", index=None)
     return x.to_string(header=True, index=False) + '\n'
 
 
@@ -548,7 +556,7 @@ def _rg(sumstats, args, log, M_annot, ref_ld_cnames, w_ld_cname, i):
 def _parse_rg(rg):
     '''Parse args.rg.'''
     rg_paths = _splitp(rg)
-    rg_files = [x.split('/')[-1] for x in rg_paths]
+    rg_files = [x.stem for x in rg_paths]
     if len(rg_paths) < 2:
         raise ValueError(
             'Must specify at least two phenotypes for rg estimation.')

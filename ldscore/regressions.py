@@ -8,6 +8,7 @@ Last column = intercept.
 
 '''
 
+from typing import Any, Union
 import numpy as np
 import pandas as pd
 from scipy.stats import norm, chi2
@@ -709,6 +710,7 @@ class RG(object):
             self.rg_ratio = float(rg_ratio)
             self.p, self.z = p_z_norm(self.rg_ratio, self.rg_se)
 
+        
     def summary(self, silly=False):
         '''Print output of Gencor object.'''
         out = []

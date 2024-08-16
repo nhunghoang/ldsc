@@ -9,6 +9,7 @@ LDSC is a command line tool for estimating
 
 '''
 
+from pathlib import Path
 import ldscore.ldscore as ld
 import ldscore.parse as ps
 import ldscore.sumstats as sumstats
@@ -501,7 +502,7 @@ parser.add_argument('--ref-ld', default=None, type=str,
     help='Use --ref-ld to tell LDSC which LD Scores to use as the predictors in the LD '
     'Score regression. '
     'LDSC will automatically append .l2.ldscore/.l2.ldscore.gz to the filename prefix.')
-parser.add_argument('--ref-ld-chr', default=None, type=str,
+parser.add_argument('--ref-ld-chr', default=None, type=Path,
     help='Same as --ref-ld, but will automatically concatenate .l2.ldscore files split '
     'across 22 chromosomes. LDSC will automatically append .l2.ldscore/.l2.ldscore.gz '
     'to the filename prefix. If the filename prefix contains the symbol @, LDSC will '
@@ -512,7 +513,7 @@ parser.add_argument('--ref-ld-chr', default=None, type=str,
 parser.add_argument('--w-ld', default=None, type=str,
     help='Filename prefix for file with LD Scores with sum r^2 taken over SNPs included '
     'in the regression. LDSC will automatically append .l2.ldscore/.l2.ldscore.gz.')
-parser.add_argument('--w-ld-chr', default=None, type=str,
+parser.add_argument('--w-ld-chr', default=None, type=Path,
     help='Same as --w-ld, but will read files split into 22 chromosomes in the same '
     'manner as --ref-ld-chr.')
 parser.add_argument('--overlap-annot', default=False, action='store_true',
