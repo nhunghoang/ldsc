@@ -14,20 +14,22 @@ h22 = 0.6
 
 
 def print_ld(x, fh, M):
+    print(f"fh: {fh}")
+
     l2 = '.l2.ldscore'
     m = '.l2.M_5_50'
     x.to_csv(fh + l2, sep='\t', index=False, float_format='%.3f')
-    print('\t'.join(map(str, M)), file=open(fh + m, 'wb'))
+    print('\t'.join(map(str, M)), file=open(fh + m, 'w'))
 
     # chr1
     y = x.iloc[0:int(len(x) / 2), ]
     y.to_csv(fh + '1' + l2, sep='\t', index=False, float_format='%.3f')
-    print('\t'.join((str(x / 2) for x in M)), file=open(fh + '1' + m, 'wb'))
+    print('\t'.join((str(x / 2) for x in M)), file=open(fh + '1' + m, 'w'))
 
     # chr2
     y = x.iloc[int(len(x) / 2):len(x), ]
     y.to_csv(fh + '2' + l2, sep='\t', index=False, float_format='%.3f')
-    print('\t'.join((str(x / 2) for x in M)), file=open(fh + '2' + m, 'wb'))
+    print('\t'.join((str(x / 2) for x in M)), file=open(fh + '2' + m, 'w'))
 
 two_ldsc = np.abs(100 * np.random.normal(size=2 * N_SNP)).reshape((N_SNP, 2))
 single_ldsc = np.sum(two_ldsc, axis=1).reshape((N_SNP, 1))
@@ -41,26 +43,26 @@ ld = pd.DataFrame({
 # 2 LD Scores 2 files
 split_ldsc = ld.copy()
 split_ldsc['LD'] = two_ldsc[:, 0]
-print_ld(split_ldsc, 'simulate_test/ldscore/twold_firstfile', [M_two[0]])
+print_ld(split_ldsc, 'test/simulate_test/ldscore/twold_firstfile', [M_two[0]])
 split_ldsc = ld.copy()
 split_ldsc['LD'] = two_ldsc[:, 1]  # both have same colname to test that this is ok
-print_ld(split_ldsc, 'simulate_test/ldscore/twold_secondfile', [M_two[1]])
+print_ld(split_ldsc, 'test/simulate_test/ldscore/twold_secondfile', [M_two[1]])
 
 # 1 LD Score 1 file
 ldsc = ld.copy()
 ldsc['LD'] = single_ldsc
-print_ld(ldsc, 'simulate_test/ldscore/oneld_onefile', [M])
+print_ld(ldsc, 'test/simulate_test/ldscore/oneld_onefile', [M])
 
 # 2 LD Scores 1 file
 ldsc = ld.copy()
 ldsc['LD1'] = two_ldsc[:, 0]
 ldsc['LD2'] = two_ldsc[:, 1]
-print_ld(ldsc, 'simulate_test/ldscore/twold_onefile', M_two)
+print_ld(ldsc, 'test/simulate_test/ldscore/twold_onefile', M_two)
 
 # Weight LD Scores
 w_ld = ld.copy()
 w_ld['LD'] = np.ones(N_SNP)
-w_ld.to_csv('simulate_test/ldscore/w.l2.ldscore',
+w_ld.to_csv('test/simulate_test/ldscore/w.l2.ldscore',
             index=False, sep='\t', float_format='%.3f')
 # split across chromosomes
 df = pd.DataFrame({
@@ -77,5 +79,5 @@ for i in range(N_SIMS):
     dfi = df.copy()
     dfi['Z'] = z
     dfi.reindex(np.random.permutation(dfi.index))
-    dfi.to_csv('simulate_test/sumstats/' + str(i),
+    dfi.to_csv('test/simulate_test/sumstats/' + str(i),
                sep='\t', index=False, float_format='%.3f')

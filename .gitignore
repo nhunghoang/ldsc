@@ -80,6 +80,9 @@ docs/_build/
 *qwer*
 *M_5_50*
 *.results
+test_data/
+*.rg_results
+test/simulate_test/
 
 # sublime text
 *.idea*

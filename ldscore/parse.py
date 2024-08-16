@@ -6,6 +6,7 @@ This module contains functions for parsing various ldsc-defined file formats.
 '''
 
 
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import os
@@ -21,29 +22,35 @@ def read_csv(fh, **kwargs):
     return pd.read_csv(fh, sep='\s+', na_values='.', **kwargs)
 
 
-def sub_chr(s, chrom):
+def sub_chr(filepath: Path, suffix: str) -> Path:
     '''Substitute chr for @, else append chr to the end of str.'''
-    if '@' not in s:
-        s += '@'
 
-    return s.replace('@', str(chrom))
+    if filepath.is_dir():
+        return filepath / f"{suffix}"
+    else:    
+        if '@' not in filepath.name:
+            return filepath.parent / f"{filepath.name}{suffix}"
+        else:
+            return filepath.parent / filepath.name.replace('@', str(suffix))
+
 
 
 def get_present_chrs(fh, num):
     '''Checks which chromosomes exist, assuming that the file base will be appended by a dot in any suffix.'''
     chrs = []
     for chrom in range(1,num):
-        if glob.glob(sub_chr(fh, chrom) + '.*'):
+        if sub_chr(fh, f"{chrom}").glob(".*"):
             chrs.append(chrom)
     return chrs
 
 
 def which_compression(fh):
     '''Given a file prefix, figure out what sort of compression to use.'''
-    if os.access(fh + '.bz2', 4):
+    # All of these check for read access
+    if os.access(sub_chr(fh,'.bz2'), 4):
         suffix = '.bz2'
         compression = 'bz2'
-    elif os.access(fh + '.gz', 4):
+    elif os.access(sub_chr(fh,'.gz'), 4):
         suffix = '.gz'
         compression = 'gzip'
     elif os.access(fh, 4):
@@ -55,15 +62,16 @@ def which_compression(fh):
     return suffix, compression
 
 
-def get_compression(fh):
+def get_compression(fh:Path):
     '''Which sort of compression should we use with read_csv?'''
-    if fh.endswith('gz'):
+    if fh.suffix == '.gz':
         compression = 'gzip'
-    elif fh.endswith('bz2'):
+    elif fh.suffix == '.bz2':
         compression = 'bz2'
     else:
         compression = None
 
+    return compression
     return compression
 
 
@@ -77,7 +85,7 @@ def read_cts(fh, match_snps):
     return cts.ANNOT.values
 
 
-def sumstats(fh, alleles=False, dropna=True):
+def sumstats(fh: Path, alleles=False, dropna=True):
     '''Parses .sumstats files. See docs/file_formats_sumstats.txt.'''
     dtype_dict = {'SNP': str,   'Z': float, 'N': float, 'A1': str, 'A2': str}
     compression = get_compression(fh)
@@ -145,9 +153,9 @@ def ldscore(fh, num=None):
     suffix = '.l2.ldscore'
     if num is not None:  # num files, e.g., one per chromosome
         chrs = get_present_chrs(fh, num+1)
-        first_fh = sub_chr(fh, chrs[0]) + suffix
+        first_fh = sub_chr(fh, f"{chrs[0]}{suffix}")
         s, compression = which_compression(first_fh)
-        chr_ld = [l2_parser(sub_chr(fh, i) + suffix + s, compression) for i in chrs]
+        chr_ld = [l2_parser(sub_chr(fh, f"{i}{suffix}{s}"), compression) for i in chrs]
         x = pd.concat(chr_ld)  # automatically sorted by chromosome
     else:  # just one file
         s, compression = which_compression(fh + suffix)
@@ -166,7 +174,7 @@ def M(fh, num=None, N=2, common=False):
         suffix += '_5_50'
 
     if num is not None:
-        x = np.sum([parsefunc(sub_chr(fh, i) + suffix) for i in get_present_chrs(fh, num+1)], axis=0)
+        x = np.sum([parsefunc(sub_chr(fh, f"{i}{suffix}")) for i in get_present_chrs(fh, num+1)], axis=0)
     else:
         x = parsefunc(fh + suffix)
 
@@ -190,14 +198,14 @@ def annot(fh_list, num=None, frqfile=None):
     if num is not None:  # 22 files, one for each chromosome
         for i, fh in enumerate(fh_list):
             chrs = get_present_chrs(fh, num+1)
-            first_fh = sub_chr(fh, chrs[0]) + annot_suffix[i]
+            first_fh = sub_chr(fh, f"{chrs[0]}{annot_suffix[i]}")
             annot_s, annot_comp_single = which_compression(first_fh)
             annot_suffix[i] += annot_s
             annot_compression.append(annot_comp_single)
 
         if frqfile is not None:
             frq_suffix = '.frq'
-            first_frqfile = sub_chr(frqfile, 1) + frq_suffix
+            first_frqfile = sub_chr(frqfile, f"{1}{frq_suffix}")
             frq_s, frq_compression = which_compression(first_frqfile)
             frq_suffix += frq_s
 
@@ -205,11 +213,11 @@ def annot(fh_list, num=None, frqfile=None):
         M_tot = 0
         for chrom in chrs:
             if frqfile is not None:
-                df_annot_chr_list = [annot_parser(sub_chr(fh, chrom) + annot_suffix[i], annot_compression[i],
-                                                  sub_chr(frqfile, chrom) + frq_suffix, frq_compression)
+                df_annot_chr_list = [annot_parser(sub_chr(fh, f"{chrom}{annot_suffix[i]}{annot_compression[i]}"),
+                                                  sub_chr(frqfile, f"{chrom}{frq_suffix}"), frq_compression)
                                      for i, fh in enumerate(fh_list)]
             else:
-                df_annot_chr_list = [annot_parser(sub_chr(fh, chrom) + annot_suffix[i], annot_compression[i])
+                df_annot_chr_list = [annot_parser(sub_chr(fh, f"{chrom}{annot_suffix[i]}{annot_compression[i]}"))
                                      for i, fh in enumerate(fh_list)]
 
             annot_matrix_chr_list = [np.matrix(df_annot_chr) for df_annot_chr in df_annot_chr_list]
