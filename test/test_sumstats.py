@@ -1,4 +1,5 @@
 
+from pathlib import Path
 import ldscore.sumstats as s
 import ldscore.parse as ps
 import unittest
@@ -11,7 +12,8 @@ from nose.plugins.attrib import attr
 import os
 from ldsc import parser
 
-DIR = os.path.dirname(__file__)
+DIR = Path(os.path.dirname(__file__))
+
 N_REP = 500
 s._N_CHR = 2  # having to mock 22 files is annoying
 
@@ -281,15 +283,15 @@ class Test_H2_Statistical(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         args = parser.parse_args('')
-        args.ref_ld = DIR + '/simulate_test/ldscore/twold_onefile'
-        args.w_ld = DIR + '/simulate_test/ldscore/w'
+        args.ref_ld = DIR / 'simulate_test/ldscore/twold_onefile'
+        args.w_ld = DIR / 'simulate_test/ldscore/w'
         args.chisq_max = 99999
         h2 = []
         h2_noint = []
         for i in range(N_REP):
             args.intercept_h2 = None
-            args.h2 = DIR + '/simulate_test/sumstats/' + str(i)
-            args.out = DIR + '/simulate_test/1'
+            args.h2 = DIR / f"simulate_test/sumstats/{i}"
+            args.out = DIR / 'simulate_test/1'
             h2.append(s.estimate_h2(args, log))
             args.intercept_h2 = 1
             h2_noint.append(s.estimate_h2(args, log))
@@ -363,15 +365,15 @@ class Test_Estimate(unittest.TestCase):
 
     def test_h2_M(self):  # check --M works
         args = parser.parse_args('')
-        args.ref_ld = DIR + '/simulate_test/ldscore/oneld_onefile'
-        args.w_ld = DIR + '/simulate_test/ldscore/w'
-        args.h2 = DIR + '/simulate_test/sumstats/1'
-        args.out = DIR + '/simulate_test/1'
+        args.ref_ld = DIR / 'simulate_test/ldscore/oneld_onefile'
+        args.w_ld = DIR / 'simulate_test/ldscore/w'
+        args.h2 = DIR / 'simulate_test/sumstats/1'
+        args.out = DIR / 'simulate_test/1'
         args.print_cov = True  # right now just check no runtime errors
         args.print_delete_vals = True
         x = s.estimate_h2(args, log)
         args.M = str(
-            float(open(DIR + '/simulate_test/ldscore/oneld_onefile.l2.M_5_50').read()))
+            float(open(DIR / 'simulate_test/ldscore/oneld_onefile.l2.M_5_50').read()))
         y = s.estimate_h2(args, log)
         assert_array_almost_equal(x.tot, y.tot)
         assert_array_almost_equal(x.tot_se, y.tot_se)
@@ -382,16 +384,16 @@ class Test_Estimate(unittest.TestCase):
 
     def test_h2_ref_ld(self):  # test different ways of reading ref ld
         args = parser.parse_args('')
-        args.ref_ld_chr = DIR + '/simulate_test/ldscore/twold_onefile'
-        args.w_ld = DIR + '/simulate_test/ldscore/w'
-        args.h2 = DIR + '/simulate_test/sumstats/555'
-        args.out = DIR + '/simulate_test/'
+        args.ref_ld_chr = DIR / 'simulate_test/ldscore/twold_onefile'
+        args.w_ld = DIR / 'simulate_test/ldscore/w'
+        args.h2 = DIR / 'simulate_test/sumstats/555'
+        args.out = DIR / 'simulate_test/'
         x = s.estimate_h2(args, log)
-        args.ref_ld = DIR + '/simulate_test/ldscore/twold_firstfile,' + \
-            DIR + '/simulate_test/ldscore/twold_secondfile'
+        args.ref_ld = str(DIR / 'simulate_test/ldscore/twold_firstfile,') + \
+            str(DIR / 'simulate_test/ldscore/twold_secondfile')
         y = s.estimate_h2(args, log)
-        args.ref_ld_chr = DIR + '/simulate_test/ldscore/twold_firstfile,' + \
-            DIR + '/simulate_test/ldscore/twold_secondfile'
+        args.ref_ld_chr = str(DIR / 'simulate_test/ldscore/twold_firstfile,') + \
+            str(DIR / 'simulate_test/ldscore/twold_secondfile')
         z = s.estimate_h2(args, log)
         assert_almost_equal(x.tot, y.tot)
         assert_array_almost_equal(y.cat, z.cat)
@@ -406,14 +408,14 @@ class Test_Estimate(unittest.TestCase):
     # test statistical properties (constrain intercept here)
     def test_rg_M(self):
         args = parser.parse_args('')
-        args.ref_ld = DIR + '/simulate_test/ldscore/oneld_onefile'
-        args.w_ld = DIR + '/simulate_test/ldscore/w'
+        args.ref_ld = DIR / 'simulate_test/ldscore/oneld_onefile'
+        args.w_ld = DIR / 'simulate_test/ldscore/w'
         args.rg = ','.join(
-            [DIR + '/simulate_test/sumstats/1' for _ in range(2)])
-        args.out = DIR + '/simulate_test/1'
+            [str(DIR / 'simulate_test/sumstats/1') for _ in range(2)])
+        args.out = DIR / 'simulate_test/1'
         x = s.estimate_rg(args, log)[0]
         args.M = open(
-            DIR + '/simulate_test/ldscore/oneld_onefile.l2.M_5_50', 'r').read().rstrip('\n')
+            DIR / 'simulate_test/ldscore/oneld_onefile.l2.M_5_50', 'r').read().rstrip('\n')
         y = s.estimate_rg(args, log)[0]
         assert_array_almost_equal(x.rg_ratio, y.rg_ratio)
         assert_array_almost_equal(x.rg_se, y.rg_se)
@@ -424,19 +426,19 @@ class Test_Estimate(unittest.TestCase):
 
     def test_rg_ref_ld(self):
         args = parser.parse_args('')
-        args.ref_ld_chr = DIR + '/simulate_test/ldscore/twold_onefile'
-        args.w_ld = DIR + '/simulate_test/ldscore/w'
+        args.ref_ld_chr = DIR / 'simulate_test/ldscore/twold_onefile'
+        args.w_ld = DIR / 'simulate_test/ldscore/w'
         args.rg = ','.join(
-            [DIR + '/simulate_test/sumstats/1' for _ in range(2)])
-        args.out = DIR + '/simulate_test/1'
+            [str(DIR / 'simulate_test/sumstats/1') for _ in range(2)])
+        args.out = DIR / 'simulate_test/1'
         args.print_cov = True  # right now just check no runtime errors
         args.print_delete_vals = True
         x = s.estimate_rg(args, log)[0]
-        args.ref_ld = DIR + '/simulate_test/ldscore/twold_firstfile,' + \
-            DIR + '/simulate_test/ldscore/twold_secondfile'
+        args.ref_ld = str(DIR / 'simulate_test/ldscore/twold_firstfile,') + \
+            str(DIR / 'simulate_test/ldscore/twold_secondfile')
         y = s.estimate_rg(args, log)[0]
-        args.ref_ld_chr = DIR + '/simulate_test/ldscore/twold_firstfile,' + \
-            DIR + '/simulate_test/ldscore/twold_secondfile'
+        args.ref_ld_chr = str(DIR / 'simulate_test/ldscore/twold_firstfile,') + \
+            str(DIR / 'simulate_test/ldscore/twold_secondfile')
         z = s.estimate_rg(args, log)[0]
         assert_almost_equal(x.rg_ratio, y.rg_ratio)
         assert_almost_equal(y.rg_jknife, z.rg_jknife)
@@ -444,11 +446,11 @@ class Test_Estimate(unittest.TestCase):
 
     def test_no_check_alleles(self):
         args = parser.parse_args('')
-        args.ref_ld = DIR + '/simulate_test/ldscore/oneld_onefile'
-        args.w_ld = DIR + '/simulate_test/ldscore/w'
+        args.ref_ld = DIR / 'simulate_test/ldscore/oneld_onefile'
+        args.w_ld = DIR / 'simulate_test/ldscore/w'
         args.rg = ','.join(
-            [DIR + '/simulate_test/sumstats/1' for _ in range(2)])
-        args.out = DIR + '/simulate_test/1'
+            [str(DIR / 'simulate_test/sumstats/1') for _ in range(2)])
+        args.out = DIR / 'simulate_test/1'
         x = s.estimate_rg(args, log)[0]
         args.no_check_alleles = True
         y = s.estimate_rg(args, log)[0]
@@ -459,10 +461,10 @@ class Test_Estimate(unittest.TestCase):
     def test_twostep_h2(self):
         # make sure two step isn't going crazy
         args = parser.parse_args('')
-        args.ref_ld = DIR + '/simulate_test/ldscore/oneld_onefile'
-        args.w_ld = DIR + '/simulate_test/ldscore/w'
-        args.h2 = DIR + '/simulate_test/sumstats/1'
-        args.out = DIR + '/simulate_test/1'
+        args.ref_ld = DIR / 'simulate_test/ldscore/oneld_onefile'
+        args.w_ld = DIR / 'simulate_test/ldscore/w'
+        args.h2 = DIR / 'simulate_test/sumstats/1'
+        args.out = DIR / 'simulate_test/1'
         args.chisq_max = 9999999
         args.two_step = 999
         x = s.estimate_h2(args, log)
@@ -474,11 +476,14 @@ class Test_Estimate(unittest.TestCase):
     def test_twostep_rg(self):
         # make sure two step isn't going crazy
         args = parser.parse_args('')
-        args.ref_ld_chr = DIR + '/simulate_test/ldscore/oneld_onefile'
-        args.w_ld = DIR + '/simulate_test/ldscore/w'
+
+        args.ref_ld_chr = DIR / 'simulate_test/ldscore/oneld_onefile'
+        args.w_ld = DIR / 'simulate_test/ldscore/w'
+        rg_path = DIR / 'simulate_test/sumstats/1'
+
         args.rg = ','.join(
-            [DIR + '/simulate_test/sumstats/1' for _ in range(2)])
-        args.out = DIR + '/simulate_test/rg'
+            [str(rg_path) for _ in range(2)])
+        args.out = DIR / 'simulate_test/rg'
         args.two_step = 999
         x = s.estimate_rg(args, log)[0]
         args.two_step = 99999
