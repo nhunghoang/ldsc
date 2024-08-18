@@ -1,3 +1,4 @@
+18.8.24 v2.2.0: updated both the h2 and the rg commands so that they record the output within separate files and not just appended at the end of the log files. They are now save to files with the suffixes: h2_results and rg_results respectively
 10.4.24 v2.0.2: created a dockerfile so that the pybedtools package could locate bedtools for the make_annot.py script
 09.4.24 v2.0.2: updated a bug where readlines was returning a bytes object instead of a string that broke the list comprehension
 30.01.23 v2.0.1; update a bug introduced in "Fix globbing bug in splitp #221" that broke some flows

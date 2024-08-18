@@ -10,5 +10,7 @@ RUN  apt-get update \
 
 COPY . /app/ldsc/
 
+
 RUN cd ldsc/ \
-  && pip install .
+  && pip install . \
+  && python3 -m unittest discover -s test/ -p "*.py"
