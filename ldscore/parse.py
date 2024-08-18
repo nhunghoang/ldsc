@@ -300,7 +300,7 @@ def __ID_List_Factory__(colnames, keepcol, fname_end, header=None, usecols=None)
 
         def __read__(self, fname):
             end = self.__fname_end__
-            if end and not fname.endswith(end):
+            if end and fname.suffix != end:
                 raise ValueError("{f} filename must end in {f}".format(f=end))
 
             comp = get_compression(fname)
