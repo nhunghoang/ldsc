@@ -621,14 +621,14 @@ parser.add_argument(
 parser.add_argument(
     "--h2",
     default=None,
-    type=str,
+    type=Path,
     help="Filename for a .sumstats[.gz] file for one-phenotype LD Score regression. "
     "--h2 requires at minimum also setting the --ref-ld and --w-ld flags.",
 )
 parser.add_argument(
     "--h2-cts",
     default=None,
-    type=str,
+    type=Path,
     help="Filename for a .sumstats[.gz] file for cell-type-specific analysis. "
     "--h2-cts requires the --ref-ld-chr, --w-ld, and --ref-ld-chr-cts flags.",
 )

@@ -383,7 +383,7 @@ def cell_type_specific(args, log):
     log.log("Results printed to " + args.out + ".cell_type_results.txt")
 
 
-def estimate_h2(args, log):
+def estimate_h2(args, log) -> reg.Hsq:
     """Estimate h2 and partitioned h2."""
     args = copy.deepcopy(args)
     if args.samp_prev is not None and args.pop_prev is not None:
@@ -448,11 +448,14 @@ def estimate_h2(args, log):
         _print_delete_values(hsqhat, ps.sub_chr(args.out, ".delete"), log)
         _print_part_delete_values(hsqhat, ps.sub_chr(args.out, ".part_delete"), log)
 
-    log.log(
-        hsqhat.summary(
-            ref_ld_cnames, P=args.samp_prev, K=args.pop_prev, overlap=args.overlap_annot
-        )
+
+    hsqhat.summary(
+        log, ref_ld_cnames, P=args.samp_prev, K=args.pop_prev, overlap=args.overlap_annot
     )
+
+    # write output to a file
+    hsqhat.write_h2_results(args.out)
+
     if args.overlap_annot:
         overlap_matrix, M_tot = _read_annot(args, log)
 
