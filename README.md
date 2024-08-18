@@ -7,15 +7,15 @@
 
 There are several ways to install ldsc (v2.0.2). Docker and Pip are preferred but the user can also install from the github repository. Each of these ways are explained below:
 
-### Docker/Singularity
+### Docker/Singularity (preferred method)
 
-ldsc is available as an image on docker and has been built for amd64 and arm64. This image can be pulled using the following command:
+ldsc is available as an image on docker and has been built for amd64 and arm64. This method of installation has all required dependencies install already. This image can be pulled using the following command:
 
 ```
-docker pull jtb114/ldsc-test
+docker pull jtb114/ldsc-test:latest
 ```
 
-The working directory of this image is "app". There is a subdirectory called "ldsc" that has all the scripts used by ldsc such as "ldsc.py", "munge_sumstats.py", and "make_annot.py". Users can then run this image in interactive mode using the following command:
+The working directory of this image is "app". There is a subdirectory called "ldsc" that has all the scripts used by ldsc such as "ldsc.py", "munge_sumstats.py", and "make_annot.py" (You will have to mount the appropriate data directories to the images). Users can then run this image in interactive mode using the following command:
 
 ```
 docker run -it jtb114/ldsc-test
@@ -51,17 +51,36 @@ pip install ldsc
 ### Github:
 In order to download `ldsc`, you should clone this repository via the commands
 ```  
-git clone https://github.com/bulik/ldsc.git
+git clone https://github.com/belowlab/ldsc.git
 cd ldsc
 ```
 
-In order to install the Python dependencies, you will need the [Anaconda](https://store.continuum.io/cshop/anaconda/) Python distribution and package manager. After installing Anaconda, run the following commands to create an environment with LDSC's dependencies:
+In order to install the Python dependencies, you will need the [Anaconda](https://store.continuum.io/cshop/anaconda/) Python distribution and package manager or you can use pip. *warning*: you will have to install bedtools into the system python because this is not a python dependency. 
+
+***If using anaconda:***
+After installing Anaconda, run the following commands to create an environment with LDSC's dependencies:
 
 ```
 conda env create --file environment.yml
 source activate ldsc
 ```
 
+***If using pip in a virtual environment (ldsc has been tested with python 3.9)***
+First create the virtualenv using python. I have specified the python version in my command but you do not have to 
+
+```
+python3.9 -m venv venv
+```
+
+Nest use the requirements.txt file to install the correct requirements after activating the environment.
+
+```
+source venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+***after install dependencies using pip/anaconda***
 Once the above has completed, you can run:
 
 ```
@@ -76,7 +95,7 @@ Short tutorials describing the four basic functions of `ldsc` (estimating LD Sco
 
 ## Updating LDSC
 
-You can update to the newest version of `ldsc` using `git`. First, navigate to your `ldsc/` directory (e.g., `cd ldsc`), then run
+If using docker/singularity, you can update ldsc to a new version by by pulling the new image down. If installed from github. You can update to the newest version of `ldsc` using `git`. First, navigate to your `ldsc/` directory (e.g., `cd ldsc`), then run
 ```
 git pull
 ```
