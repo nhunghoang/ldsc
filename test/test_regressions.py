@@ -7,6 +7,20 @@ from nose.tools import assert_raises, assert_equal
 
 np.set_printoptions(precision=4)
 
+class Mock(object):
+    """
+    Dumb object for mocking args and log
+    """
+
+    def __init__(self):
+        pass
+
+    def log(self, x):
+        # pass
+        print(x)
+
+log = Mock()
+args = Mock()
 
 def test_update_separators():
     ii1 = [True, True, False, True, True, False, True]
@@ -110,14 +124,14 @@ class Test_Hsq_1D(unittest.TestCase):
 
     def test_summary(self):
         # not much to test; we can at least make sure no errors at runtime
-        self.hsq.summary(["asdf"])
+        self.hsq.summary(log, ref_ld_colnames=["asdf"])
         self.ld += np.arange(4).reshape((4, 1))
         self.chisq += np.arange(4).reshape((4, 1))
         hsq = reg.Hsq(self.chisq, self.ld, self.w_ld, self.N, self.M, n_blocks=3)
-        hsq.summary(["asdf"])
+        hsq.summary(log, ref_ld_colnames=["asdf"])
         # test ratio printout with mean chi^2 < 1
         hsq.mean_chisq = 0.5
-        hsq.summary(["asdf"])
+        hsq.summary(log, ref_ld_colnames=["asdf"])
 
     def test_update(self):
         pass
@@ -147,8 +161,8 @@ class Test_Coef(unittest.TestCase):
         w_ld = np.ones_like(chisq)
         self.hsq_noint = reg.Hsq(chisq, ld, w_ld, N, self.M, n_blocks=3, intercept=1)
         self.hsq_int = reg.Hsq(chisq, ld, w_ld, N, self.M, n_blocks=3)
-        print(self.hsq_noint.summary())
-        print(self.hsq_int.summary())
+        print(self.hsq_noint.summary(log=log))
+        print(self.hsq_int.summary(log=log))
 
     def test_coef(self):
         a = [self.hsq1 / self.M[0, 0], self.hsq2 / self.M[0, 1]]
@@ -198,15 +212,15 @@ class Test_Hsq_2D(unittest.TestCase):
 
     def test_summary(self):
         # not much to test; we can at least make sure no errors at runtime
-        self.hsq.summary(["asdf", "qwer"])
+        self.hsq.summary(log,ref_ld_colnames=["asdf", "qwer"])
         # change to random 7/30/2019 to avoid inconsistent singular matrix errors
         self.ld += np.random.normal(scale=0.1, size=(17, 2))
         self.chisq += np.arange(17).reshape((17, 1))
         hsq = reg.Hsq(self.chisq, self.ld, self.w_ld, self.N, self.M, n_blocks=3)
-        hsq.summary(["asdf", "qwer"])
+        hsq.summary(log,ref_ld_colnames=["asdf", "qwer"])
         # test ratio printout with mean chi^2 < 1
         hsq.mean_chisq = 0.5
-        hsq.summary(["asdf", "qwer"])
+        hsq.summary(log,ref_ld_colnames=["asdf", "qwer"])
 
 
 class Test_Gencov_1D(unittest.TestCase):
@@ -352,9 +366,9 @@ class Test_Gencov_2D(unittest.TestCase):
             n_blocks=3,
             intercept=1,
         )
-        print(gencov.summary(["asdf", "asdf"]))
+        print(gencov.summary(ref_ld_colnames=["asdf", "asdf"]))
         print()
-        print(hsq.summary(["asdf", "asdf"]))
+        print(hsq.summary(log, ref_ld_colnames=["asdf", "asdf"]))
         assert_array_almost_equal(gencov.tot, hsq.tot)
         assert_array_almost_equal(gencov.tot_se, hsq.tot_se)
         assert_array_almost_equal(gencov.tot_cov, hsq.tot_cov)
