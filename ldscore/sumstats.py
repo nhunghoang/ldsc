@@ -603,12 +603,12 @@ def _print_gencor(args, log, rghat, ref_ld_cnames, i, rg_paths, print_hsq1):
         args.pop_prev = [None, None]
     if print_hsq1:
         log.log(l("\nHeritability of phenotype 1\n"))
-        log.log(rghat.hsq1.summary(ref_ld_cnames, P=P[0], K=K[0]))
+        log.log(rghat.hsq1.summary(log, ref_ld_colnames=ref_ld_cnames, P=P[0], K=K[0]))
 
     log.log(l("\nHeritability of phenotype {I}/{N}\n".format(I=i + 2, N=len(rg_paths))))
-    log.log(rghat.hsq2.summary(ref_ld_cnames, P=P[1], K=K[1]))
+    log.log(rghat.hsq2.summary(log, ref_ld_colnames=ref_ld_cnames, P=P[1], K=K[1]))
     log.log(l("\nGenetic Covariance\n"))
-    log.log(rghat.gencov.summary(ref_ld_cnames, P=P, K=K))
+    log.log(rghat.gencov.summary(ref_ld_colnames=ref_ld_cnames, P=P, K=K))
     log.log(l("\nGenetic Correlation\n"))
     log.log(rghat.summary() + "\n")
 
