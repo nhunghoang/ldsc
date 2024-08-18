@@ -535,12 +535,12 @@ class Hsq(LD_Score_Regression):
         """write the information in the self.output_data to a file
         """
         output_prefix = Path(output)
-        
+
         output_path = output_prefix.parent / f"{output_prefix.name}.h2_results"
 
         with open(output_path, "w", encoding="utf-8") as h2_output_file:
             h2_output_file.write("h2\th2_stderr\tlambda_gc\tmean_chi2\tintercept_constrained\tintercept\intercept_stderr\tscale\tcategories\tsnp_proportion\th2g_proportion\tenrichment\tcoefficients\tcoefficients_stderr\tratio\tratio_stderr\n")
-            h2_output_file.write(f"{self.output_data['h2']}\t{self.output_data['h2_stderr']}\t{self.output_data['lambda_gc']}\t{self.output_data['mean_chi2']}\t{self.output_data['constrained']}\t{self.output_data['intercept']}\t{self.output_data['intercept_stderr']}\t{self.output_data['scale']}\t{self.output_data['categories']}\t{self.output_data['snp_proportion']}\t{self.output_data['h2g_proportion']}\t{self.output_data['enrichment']}\t{self.output_data['coefficients']}\t{self.output_data['coefficients_stderr']}\t{self.output_data['ratio']}\t{self.output_data['ratio_stderr']}\n")
+            h2_output_file.write(f"{self.output_data.get('h2', 'N/A')}\t{self.output_data.get('h2_stderr', 'N/A')}\t{self.output_data.get('lambda_gc', 'N/A')}\t{self.output_data.get('mean_chi2', 'N/A')}\t{self.output_data.get('constrained', 'N/A')}\t{self.output_data.get('intercept', 'N/A')}\t{self.output_data.get('intercept_stderr', 'N/A')}\t{self.output_data.get('scale', 'N/A')}\t{self.output_data.get('categories', 'N/A')}\t{self.output_data.get('snp_proportion', 'N/A')}\t{self.output_data.get('h2g_proportion', 'N/A')}\t{self.output_data.get('enrichment', 'N/A')}\t{self.output_data.get('coefficients', 'N/A')}\t{self.output_data.get('coefficients_stderr', 'N/A')}\t{self.output_data.get('ratio', 'N/A')}\t{self.output_data.get('ratio_stderr', 'N/A')}\n")
 
     def summary(self, log, ref_ld_colnames=None, P=None, K=None, overlap=False) -> None:
         """Print summary of the LD Score Regression."""
@@ -611,7 +611,7 @@ class Hsq(LD_Score_Regression):
 
         self.output_data["lambda_gc"] = lambda_gc
         self.output_data["mean_chi2"] = mean_chi2
-        self.output_data["ratio"] = self.ratio
+        self.output_data["ratio"] = "N/A"
         self.output_data["ratio_stderr"] = "N/A"
         self.output_data["constrained"] = self.constrain_intercept
 
@@ -634,6 +634,7 @@ class Hsq(LD_Score_Regression):
                     log.log(
                         f"Ratio: {s(self.ratio)} ({s(self.ratio_se)})"
                     )
+                    self.output_data["ratio"] = s(self.ratio)
                     self.output_data["ratio_stderr"] = s(self.ratio_se)
             else:
                 log.log("Ratio: NA (mean chi^2 < 1)")

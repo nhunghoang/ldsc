@@ -82,6 +82,7 @@ docs/_build/
 *.results
 test_data/
 *.rg_results
+*.h2_results
 test/simulate_test/
 
 # sublime text
