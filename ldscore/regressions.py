@@ -8,6 +8,7 @@ Last column = intercept.
 
 """
 
+from pathlib import Path
 from typing import Any, Union
 import numpy as np
 import pandas as pd
@@ -399,6 +400,7 @@ class Hsq(LD_Score_Regression):
             self.ratio, self.ratio_se = self._ratio(
                 self.intercept, self.intercept_se, self.mean_chisq
             )
+        self.output_data = {}
 
     def _update_func(self, x, ref_ld_tot, w_ld, N, M, Nbar, intercept=None, ii=None):
         """
@@ -529,7 +531,18 @@ class Hsq(LD_Score_Regression):
             ]
         return df
 
-    def summary(self, ref_ld_colnames=None, P=None, K=None, overlap=False):
+    def write_h2_results(self, output: str) -> None:
+        """write the information in the self.output_data to a file
+        """
+        output_prefix = Path(output)
+        
+        output_path = output_prefix.parent / f"{output_prefix.name}.h2_results"
+
+        with open(output_path, "w", encoding="utf-8") as h2_output_file:
+            h2_output_file.write("h2\th2_stderr\tlambda_gc\tmean_chi2\tintercept_constrained\tintercept\intercept_stderr\tscale\tcategories\tsnp_proportion\th2g_proportion\tenrichment\tcoefficients\tcoefficients_stderr\tratio\tratio_stderr\n")
+            h2_output_file.write(f"{self.output_data['h2']}\t{self.output_data['h2_stderr']}\t{self.output_data['lambda_gc']}\t{self.output_data['mean_chi2']}\t{self.output_data['constrained']}\t{self.output_data['intercept']}\t{self.output_data['intercept_stderr']}\t{self.output_data['scale']}\t{self.output_data['categories']}\t{self.output_data['snp_proportion']}\t{self.output_data['h2g_proportion']}\t{self.output_data['enrichment']}\t{self.output_data['coefficients']}\t{self.output_data['coefficients_stderr']}\t{self.output_data['ratio']}\t{self.output_data['ratio_stderr']}\n")
+
+    def summary(self, log, ref_ld_colnames=None, P=None, K=None, overlap=False) -> None:
         """Print summary of the LD Score Regression."""
         if P is not None and K is not None:
             T = "Liability"
@@ -538,50 +551,96 @@ class Hsq(LD_Score_Regression):
             T = "Observed"
             c = 1
 
-        out = [
-            "Total "
-            + T
-            + " scale h2: "
-            + s(c * self.tot)
-            + " ("
-            + s(c * self.tot_se)
-            + ")"
-        ]
+        self.output_data["scale"] = T
+
+        h2 = s(c * self.tot)
+        h2_stderr = s(c * self.tot_se)
+
+        log.log(f"Total {T} scale h2: {h2} ({h2_stderr})")
+        # out = [
+
+        # we are going to set values for variables that may be updated 
+        # if the below "if self.n_annot >1" condition is met otherwise 
+        # we want the variables to equal "N/A"
+        categories = "N/A"
+        snp_proportion = "N/"
+        h2g_proportion = "N/A"
+        enrichment = "N/A"
+        coefficients = "N/A"
+        coefficients_stderr = "N/A"
+    
         if self.n_annot > 1:
             if ref_ld_colnames is None:
                 ref_ld_colnames = ["CAT_" + str(i) for i in range(self.n_annot)]
 
-            out.append("Categories: " + " ".join(ref_ld_colnames))
+            categories = ' '.join(ref_ld_colnames)
+
+            log.log(f"Categories: {categories}")
 
             if not overlap:
-                out.append(T + " scale h2: " + s(c * self.cat))
-                out.append(T + " scale h2 SE: " + s(c * self.cat_se))
-                out.append("Proportion of SNPs: " + s(self.M_prop))
-                out.append("Proportion of h2g: " + s(self.prop))
-                out.append("Enrichment: " + s(self.enrichment))
-                out.append("Coefficients: " + s(self.coef))
-                out.append("Coefficient SE: " + s(self.coef_se))
+                h2 = s(c * self.cat)
+                h2_stderr = s(c * self.cat_se)
+                snp_proportion = s(self.M_prop)
+                h2g_proportion = s(self.prop)
+                enrichment = s(self.enrichment)
+                coefficients = s(self.coef)
+                coefficients_stderr = s(self.coef_se)
 
-        out.append("Lambda GC: " + s(self.lambda_gc))
-        out.append("Mean Chi^2: " + s(self.mean_chisq))
+                log.log(f"{T} scale h2: {h2}")
+                log.log(f"{T} scale h2 SE: {h2_stderr}")
+                log.log(f"Proportion of SNPs: {snp_proportion}")
+                log.log(f"Proportion of h2g: {h2g_proportion}")
+                log.log(f"Enrichment: {enrichment}")
+                log.log(f"Coefficients: {coefficients}")
+                log.log(f"Coefficient SE:  {coefficients_stderr}")
+
+        lambda_gc = s(self.lambda_gc)
+        mean_chi2 = s(self.mean_chisq)
+        
+        log.log(f"Lambda GC: {lambda_gc}")
+        log.log(f"Mean Chi^2: {mean_chi2}")
+
+        self.output_data["categories"] = categories
+        self.output_data["h2"] = h2
+        self.output_data["h2_stderr"] = h2_stderr
+        self.output_data["snp_proportion"] = snp_proportion
+        self.output_data["h2g_proportion"] = h2g_proportion
+        self.output_data["enrichment"] = enrichment
+        self.output_data["coefficients"] = coefficients
+        self.output_data["coefficients_stderr"] = coefficients_stderr
+
+        self.output_data["lambda_gc"] = lambda_gc
+        self.output_data["mean_chi2"] = mean_chi2
+        self.output_data["ratio"] = self.ratio
+        self.output_data["ratio_stderr"] = "N/A"
+        self.output_data["constrained"] = self.constrain_intercept
+
+
         if self.constrain_intercept:
-            out.append("Intercept: constrained to {C}".format(C=s(self.intercept)))
+            intercept = s(self.intercept)
+            intercept_stderr = "N/A"
+            log.log(f"Intercept: constrained to {intercept}")
         else:
-            out.append(
-                "Intercept: " + s(self.intercept) + " (" + s(self.intercept_se) + ")"
+            intercept = s(self.intercept)
+            intercept_stderr = s(self.intercept_se)
+            log.log(
+                f"Intercept: {intercept} ({intercept_stderr})"
             )
             if self.mean_chisq > 1:
                 if self.ratio < 0:
-                    out.append("Ratio < 0 (usually indicates GC correction).")
+                    log.log("Ratio < 0 (usually indicates GC correction).")
+                    self.output_data["ratio_stderr"] = "N/A"
                 else:
-                    out.append(
-                        "Ratio: " + s(self.ratio) + " (" + s(self.ratio_se) + ")"
+                    log.log(
+                        f"Ratio: {s(self.ratio)} ({s(self.ratio_se)})"
                     )
+                    self.output_data["ratio_stderr"] = s(self.ratio_se)
             else:
-                out.append("Ratio: NA (mean chi^2 < 1)")
-
-        return remove_brackets("\n".join(out))
-
+                log.log("Ratio: NA (mean chi^2 < 1)")
+        
+        self.output_data["intercept"] = intercept
+        self.output_data["intercept_stderr"] = intercept_stderr
+        
     def _update_weights(self, ld, w_ld, N, M, hsq, intercept, ii=None):
         if intercept is None:
             intercept = self.__null_intercept__
