@@ -68,8 +68,6 @@ class test_process_n(unittest.TestCase):
     def test_n_col(self):
         self.dat["N"] = self.N
         dat = munge.process_n(self.dat, self.args, log)
-        print(dat)
-        print(self.dat_filtered)
         assert_frame_equal(dat, self.dat_filtered)
 
     def test_nstudy(self):

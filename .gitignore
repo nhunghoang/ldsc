@@ -22,6 +22,7 @@ var/
 .installed.cfg
 *.egg
 .pdm-python
+.pdm-build
 
 # Installer logs
 pip-log.txt
@@ -94,4 +95,8 @@ test/simulate_test/
 .vscode/
 
 # venv
-*_venv/
+ldsc_venv/
+
+# tests
+.nox
+.venv

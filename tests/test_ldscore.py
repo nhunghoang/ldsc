@@ -33,17 +33,10 @@ class test_bed(unittest.TestCase):
     def setUp(self):
         self.M = 8
         self.N = 5
-<<<<<<< HEAD:test/test_ldscore.py
-        self.bim = ps.PlinkBIMFile(Path("test/plink_test/plink.bim"))
-
-    def test_bed(self):
-        bed = ld.PlinkBEDFile(Path("test/plink_test/plink.bed"), self.N, self.bim)
-=======
         self.bim = ps.PlinkBIMFile(Path("tests/plink_test/plink.bim"))
 
     def test_bed(self):
         bed = ld.PlinkBEDFile(Path("tests/plink_test/plink.bed"), self.N, self.bim)
->>>>>>> 0652067172502cf2b61808d5859f3ad8551b7d96:tests/test_ldscore.py
         # remove three monomorphic SNPs
         print(bed.geno)
         print(bed.m)
@@ -61,11 +54,7 @@ class test_bed(unittest.TestCase):
     def test_filter_snps(self):
         keep_snps = [1, 4]
         bed = ld.PlinkBEDFile(
-<<<<<<< HEAD:test/test_ldscore.py
-            Path("test/plink_test/plink.bed"), self.N, self.bim, keep_snps=keep_snps
-=======
             Path("tests/plink_test/plink.bed"), self.N, self.bim, keep_snps=keep_snps
->>>>>>> 0652067172502cf2b61808d5859f3ad8551b7d96:tests/test_ldscore.py
         )
         assert bed.m == 1
         assert bed.n == 5
@@ -75,11 +64,7 @@ class test_bed(unittest.TestCase):
     def test_filter_indivs(self):
         keep_indivs = [0, 1]
         bed = ld.PlinkBEDFile(
-<<<<<<< HEAD:test/test_ldscore.py
-            Path("test/plink_test/plink.bed"), self.N, self.bim, keep_indivs=keep_indivs
-=======
             Path("tests/plink_test/plink.bed"), self.N, self.bim, keep_indivs=keep_indivs
->>>>>>> 0652067172502cf2b61808d5859f3ad8551b7d96:tests/test_ldscore.py
         )
         assert bed.m == 2
         assert bed.n == 2
@@ -91,11 +76,7 @@ class test_bed(unittest.TestCase):
         keep_indivs = [0, 1]
         keep_snps = [1, 5]
         bed = ld.PlinkBEDFile(
-<<<<<<< HEAD:test/test_ldscore.py
-            Path("test/plink_test/plink.bed"),
-=======
             Path("tests/plink_test/plink.bed"),
->>>>>>> 0652067172502cf2b61808d5859f3ad8551b7d96:tests/test_ldscore.py
             self.N,
             self.bim,
             keep_snps=keep_snps,
@@ -108,37 +89,21 @@ class test_bed(unittest.TestCase):
 
     @nose.tools.raises(ValueError)
     def test_bad_filename(self):
-<<<<<<< HEAD:test/test_ldscore.py
-        bed = ld.PlinkBEDFile(Path("test/plink_test/plink.bim"), 9, self.bim)
-
-    @nose.tools.raises(ValueError)
-    def test_nextSNPs_errors1(self):
-        bed = ld.PlinkBEDFile(Path("test/plink_test/plink.bed"), self.N, self.bim)
-=======
         bed = ld.PlinkBEDFile(Path("tests/plink_test/plink.bim"), 9, self.bim)
 
     @nose.tools.raises(ValueError)
     def test_nextSNPs_errors1(self):
         bed = ld.PlinkBEDFile(Path("tests/plink_test/plink.bed"), self.N, self.bim)
->>>>>>> 0652067172502cf2b61808d5859f3ad8551b7d96:tests/test_ldscore.py
         bed.nextSNPs(0)
 
     @nose.tools.raises(ValueError)
     def test_nextSNPs_errors2(self):
-<<<<<<< HEAD:test/test_ldscore.py
-        bed = ld.PlinkBEDFile(Path("test/plink_test/plink.bed"), self.N, self.bim)
-=======
         bed = ld.PlinkBEDFile(Path("tests/plink_test/plink.bed"), self.N, self.bim)
->>>>>>> 0652067172502cf2b61808d5859f3ad8551b7d96:tests/test_ldscore.py
         bed.nextSNPs(5)
 
     def test_nextSNPs(self):
         for b in [1, 2, 3]:
-<<<<<<< HEAD:test/test_ldscore.py
-            bed = ld.PlinkBEDFile(Path("test/plink_test/plink.bed"), self.N, self.bim)
-=======
             bed = ld.PlinkBEDFile(Path("tests/plink_test/plink.bed"), self.N, self.bim)
->>>>>>> 0652067172502cf2b61808d5859f3ad8551b7d96:tests/test_ldscore.py
             x = bed.nextSNPs(b)
             assert x.shape == (5, b)
             assert np.all(np.abs(np.mean(x, axis=0)) < 0.01)
@@ -146,11 +111,7 @@ class test_bed(unittest.TestCase):
 
     def test_nextSNPs_maf_ref(self):
         b = 4
-<<<<<<< HEAD:test/test_ldscore.py
-        bed = ld.PlinkBEDFile(Path("test/plink_test/plink.bed"), self.N, self.bim)
-=======
         bed = ld.PlinkBEDFile(Path("tests/plink_test/plink.bed"), self.N, self.bim)
->>>>>>> 0652067172502cf2b61808d5859f3ad8551b7d96:tests/test_ldscore.py
         x = bed.nextSNPs(b)
         bed._currentSNP -= b
         y = bed.nextSNPs(b, minorRef=True)

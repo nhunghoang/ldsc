@@ -14,7 +14,6 @@ h22 = 0.6
 
 
 def print_ld(x, fh, M):
-    print(f"fh: {fh}")
 
     l2 = ".l2.ldscore"
     m = ".l2.M_5_50"
