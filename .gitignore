@@ -21,6 +21,7 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+.pdm-python
 
 # Installer logs
 pip-log.txt
@@ -91,3 +92,6 @@ test/simulate_test/
 
 # vscode
 .vscode/
+
+# venv
+*_venv/
