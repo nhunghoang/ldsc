@@ -19,6 +19,7 @@ import traceback
 import copy
 import os
 import glob
+import functools
 
 
 _N_CHR = 22
@@ -474,10 +475,9 @@ def estimate_rg(args, log):
     args = copy.deepcopy(args)
     rg_paths, rg_files = _parse_rg(args.rg)
     n_pheno = len(rg_paths)
-    f = lambda x: _split_or_none(x, n_pheno)
     args.intercept_h2, args.intercept_gencov, args.samp_prev, args.pop_prev = list(
         map(
-            f, (args.intercept_h2, args.intercept_gencov, args.samp_prev, args.pop_prev)
+            functools.partial(_split_or_none, phenotype_count=n_pheno), (args.intercept_h2, args.intercept_gencov, args.samp_prev, args.pop_prev)
         )
     )
     list(
@@ -697,11 +697,11 @@ def _print_rg_cov(rghat, fh, log):
     _print_cov(rghat.gencov, fh + ".gencov.cov", log)
 
 
-def _split_or_none(x, n):
+def _split_or_none(x, phenotype_count: int):
     if x is not None:
         y = list(map(float, x.replace("N", "-").split(",")))
     else:
-        y = [None for _ in range(n)]
+        y = [None for _ in range(phenotype_count)]
     return y
 
 

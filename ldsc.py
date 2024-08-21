@@ -20,6 +20,7 @@ from subprocess import call
 from itertools import product
 import time, sys, traceback, argparse
 from functools import reduce
+from log import CustomLogger
 
 
 try:
@@ -480,13 +481,13 @@ def ldscore(args, log):
     np.seterr(divide="raise", invalid="raise")
 
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--out",
     default="ldsc",
-    type=str,
-    help="Output filename prefix. If --out is not set, LDSC will use ldsc as the "
-    "defualt output filename prefix.",
+    type=Path,
+    help="Output filename prefix. (default: %(default)s)",
 )
 # Basic LD Score Estimation Flags'
 parser.add_argument(
@@ -801,6 +802,7 @@ parser.add_argument(
     "redundant for pairs of chisq files generated using munge_sumstats.py and the "
     "same argument to the --merge-alleles flag.",
 )
+
 # transform to liability scale
 parser.add_argument(
     "--samp-prev",
@@ -816,10 +818,13 @@ parser.add_argument(
 if __name__ == "__main__":
 
     args = parser.parse_args()
-    if args.out is None:
-        raise ValueError("--out is required.")
 
-    log = Logger(args.out + ".log")
+    log = Logger(args.out.name +  ".log")
+
+    log2 = CustomLogger.create_logger()
+
+    log2.configure(args.out.parent, f"{args.out.name}.log2", 1, True)
+
     try:
         defaults = vars(parser.parse_args(""))
         opts = vars(args)
