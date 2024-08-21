@@ -334,7 +334,6 @@ def cell_type_specific(args, log):
     chisq = np.array(sumstats.Z**2)
     keep_snps = sumstats[["SNP"]]
 
-    s = lambda x: np.array(x).reshape((n_snp, 1))
     results_columns = [
         "Name",
         "Coefficient",
@@ -359,10 +358,10 @@ def cell_type_specific(args, log):
         M_cts = ps.M_fromlist(_splitp(ct_ld_chr), _N_CHR, common=(not args.not_M_5_50))
         M_annot = np.hstack([M_cts, M_annot_all_regr])
         hsqhat = reg.Hsq(
-            s(chisq),
+            reshape_array(chisq, n_snp),
             ref_ld,
-            s(sumstats[w_ld_cname]),
-            s(sumstats.N),
+            reshape_array(sumstats[w_ld_cname], n_snp),
+            reshape_array(sumstats.N, n_snp),
             M_annot,
             n_blocks=n_blocks,
             intercept=args.intercept_h2,
@@ -382,6 +381,10 @@ def cell_type_specific(args, log):
     df_results.sort_values(by="Coefficient_P_value", inplace=True)
     df_results.to_csv(args.out + ".cell_type_results.txt", sep="\t", index=False)
     log.log("Results printed to " + args.out + ".cell_type_results.txt")
+
+def reshape_array(matrix, n_snps: int) -> np.array:
+    """method to reshape the provided matrix"""
+    return np.array(matrix).reshape((n_snps, 1))
 
 
 def estimate_h2(args, log) -> reg.Hsq:
@@ -414,8 +417,8 @@ def estimate_h2(args, log) -> reg.Hsq:
         if args.chisq_max is None:
             chisq_max = max(0.001 * sumstats.N.max(), 80)
 
-    s = lambda x: np.array(x).reshape((n_snp, 1))
-    chisq = s(sumstats.Z**2)
+
+    chisq = reshape_array(sumstats.Z**2, n_snp)
     if chisq_max is not None:
         ii = np.ravel(chisq < chisq_max)
         sumstats = sumstats.iloc[ii, :]
@@ -434,8 +437,8 @@ def estimate_h2(args, log) -> reg.Hsq:
     hsqhat = reg.Hsq(
         chisq,
         ref_ld,
-        s(sumstats[w_ld_cname]),
-        s(sumstats.N),
+        reshape_array(sumstats[w_ld_cname], n_snp),
+        reshape_array(sumstats.N, n_snp),
         M_annot,
         n_blocks=n_blocks,
         intercept=args.intercept_h2,
@@ -482,7 +485,7 @@ def estimate_rg(args, log):
     )
     list(
         map(
-            lambda x: _check_arg_len(x, n_pheno),
+            functools.partial(_check_arg_len, phenotype_count=n_pheno),
             (
                 (args.intercept_h2, "--intercept-h2"),
                 (args.intercept_gencov, "--intercept-gencov"),
@@ -643,7 +646,7 @@ def _align_alleles(z, alleles):
 def _rg(sumstats, args, log, M_annot, ref_ld_cnames, w_ld_cname, i):
     """Run the regressions."""
     n_snp = len(sumstats)
-    s = lambda x: np.array(x).reshape((n_snp, 1))
+
     if args.chisq_max is not None:
         ii = sumstats.Z1**2 * sumstats.Z2**2 < args.chisq_max**2
         n_snp = np.sum(ii)  # lambdas are late binding, so this works
@@ -656,12 +659,12 @@ def _rg(sumstats, args, log, M_annot, ref_ld_cnames, w_ld_cname, i):
         args.intercept_gencov[i + 1],
     ]
     rghat = reg.RG(
-        s(sumstats.Z1),
-        s(sumstats.Z2),
+        reshape_array(sumstats.Z1, n_snp),
+        reshape_array(sumstats.Z2, n_snp),
         ref_ld,
-        s(sumstats[w_ld_cname]),
-        s(sumstats.N1),
-        s(sumstats.N2),
+        reshape_array(sumstats[w_ld_cname], n_snp),
+        reshape_array(sumstats.N1, n_snp),
+        reshape_array(sumstats.N2, n_snp),
         M_annot,
         intercept_hsq1=intercepts[0],
         intercept_hsq2=intercepts[1],
@@ -705,9 +708,9 @@ def _split_or_none(x, phenotype_count: int):
     return y
 
 
-def _check_arg_len(x, n):
+def _check_arg_len(x, phenotype_count: int):
     x, m = x
-    if len(x) != n:
+    if len(x) != phenotype_count:
         raise ValueError(
             "{M} must have the same number of arguments as --rg/--h2.".format(M=m)
         )
