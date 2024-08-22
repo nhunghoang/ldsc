@@ -11,7 +11,7 @@ import bz2
 import argparse
 from scipy.stats import chi2
 from ldscore import sumstats
-from ldsc import MASTHEAD, Logger, sec_to_str
+# from ldsc import MASTHEAD, Logger, sec_to_str
 import time
 from log import CustomLogger
 import logging
