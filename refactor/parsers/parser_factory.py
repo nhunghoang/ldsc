@@ -51,6 +51,7 @@ def generate_parser() -> argparse.ArgumentParser:
         "--out",
         default="ldsc",
         type=Path,
+        required=True,
         help="output filename prefix. If only a filename is given then it will be written to the current directory. If a full path with the output prefix is given then the file will be written there. (default: %(default)s)"
     )
 

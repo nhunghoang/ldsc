@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Protocol
 from .parser_interface import ParserConfig
 from ldscore import sumstats
+from annotate import make_annot_files
 
 from rich_argparse import RichHelpFormatter
     
@@ -47,5 +48,7 @@ class MakeAnnotconfig(ParserConfig):
         parser.add_argument(
             "--annot-file", type=Path, help="the name of the annot file to output."
         )
+
+        parser.set_defaults(func=make_annot_files)
 
         return parser

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Protocol
 from .parser_interface import ParserConfig
 from ldscore import sumstats
+from munge_sumstats import munge_sumstats
 
 from rich_argparse import RichHelpFormatter
     
@@ -13,7 +14,8 @@ class MungeSumstatsconfig(ParserConfig):
     def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         """Add the appropriate flags and subcommands to the ldsc parser"""
 
-        parser.add_argument("--sumstats", default=None, type=str, help="Input filename.")
+        parser.add_argument("--sumstats", default=None, type=Path, help="Input filename.", required=True)
+
         parser.add_argument(
             "--N",
             default=None,
@@ -41,27 +43,36 @@ class MungeSumstatsconfig(ParserConfig):
 
         parser.add_argument("--info-min", default=0.9, type=float, help="Minimum INFO score.")
         parser.add_argument("--maf-min", default=0.01, type=float, help="Minimum MAF.")
-        parser.add_argument(
+
+        # daner and --daner-n are not compatible so we are going to add them to a mutually exclusive group
+        daner_group = parser.add_mutually_exclusive_group(required=False)
+
+        daner_group.add_argument(
             "--daner",
             default=False,
             action="store_true",
             help="Use this flag to parse Stephan Ripke's daner* file format.",
         )
-        parser.add_argument(
+        daner_group.add_argument(
             "--daner-n",
             default=False,
             action="store_true",
             help="Use this flag to parse more recent daner* formatted files, which "
             "include sample size column 'Nca' and 'Nco'.",
         )
-        parser.add_argument(
+
+        # --no-alleles and --merge-alleles are also not compatible so we are going 
+        # to add them to a group
+        alleles_group = parser.add_mutually_exclusive_group(required=False)
+
+        alleles_group.add_argument(
             "--no-alleles",
             default=False,
             action="store_true",
             help="Don't require alleles. Useful if only unsigned summary statistics are available "
             "and the goal is h2 / partitioned h2 estimation rather than rg estimation.",
         )
-        parser.add_argument(
+        alleles_group.add_argument(
             "--merge-alleles",
             default=None,
             type=str,
@@ -171,5 +182,7 @@ class MungeSumstatsconfig(ParserConfig):
             action="store_true",
             help="Keep the MAF column (if one exists).",
         )
+
+        parser.set_defaults(func=munge_sumstats)
 
         return parser
