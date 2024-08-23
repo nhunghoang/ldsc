@@ -31,8 +31,9 @@ class LDSCconfig(ParserConfig):
         rg_parser.add_argument(
             "--rg",
             default=None,
-            type=str,
+            type=Path,
             help="Comma-separated list of prefixes of .chisq filed for genetic correlation estimation.",
+            action="append",
         )
 
         rg_parser.set_defaults(func=sumstats.estimate_rg)

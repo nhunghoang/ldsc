@@ -474,8 +474,8 @@ def estimate_rg(args):
     check_args(args)
 
     args = copy.deepcopy(args)
-    rg_paths, rg_files = _parse_rg(args.rg)
-    n_pheno = len(rg_paths)
+
+    n_pheno = len(args.rg)
     args.intercept_h2, args.intercept_gencov, args.samp_prev, args.pop_prev = list(
         map(
             functools.partial(_split_or_none, phenotype_count=n_pheno), (args.intercept_h2, args.intercept_gencov, args.samp_prev, args.pop_prev)
@@ -495,7 +495,7 @@ def estimate_rg(args):
     if args.no_intercept:
         args.intercept_h2 = [1 for _ in range(n_pheno)]
         args.intercept_gencov = [0 for _ in range(n_pheno)]
-    p1 = rg_paths[0]
+    p1 = args.rg[0]
     out_prefix = Path(args.out)
     M_annot, w_ld_cname, ref_ld_cnames, sumstats, _ = _read_ld_sumstats(
         args, p1, alleles=True, dropna=True
@@ -507,13 +507,13 @@ def estimate_rg(args):
     if args.two_step is not None:
         logger.info(f"Using two-step estimator with cutoff at {args.two_step}.")
 
-    for i, p2 in enumerate(rg_paths[1:n_pheno]):
-        logger.info(f"Computing rg for phenotype {i + 2}/{len(rg_paths)}")
+    for i, p2 in enumerate(args.rg[1:n_pheno]):
+        logger.info(f"Computing rg for phenotype {i + 2}/{len(args.rg)}")
         try:
             loop = _read_other_sumstats(args, p2, sumstats, ref_ld_cnames)
             rghat = _rg(loop, args, M_annot, ref_ld_cnames, w_ld_cname, i)
             RG.append(rghat)
-            _print_gencor(args, rghat, ref_ld_cnames, i, rg_paths, i == 0)
+            _print_gencor(args, rghat, ref_ld_cnames, i, args.rg, i == 0)
             if args.print_cov:
                 _print_rg_cov(rghat, f"{out_prefix}.cov")
             if args.print_delete_vals:
@@ -521,7 +521,7 @@ def estimate_rg(args):
 
         except Exception:  # keep going if phenotype 50/100 causes an error
             
-            logger.critical(f"ERROR computing rg for phenotype {i + 2}/{len(rg_paths)}, from file {rg_paths[i + 1]}.")
+            logger.critical(f"ERROR computing rg for phenotype {i + 2}/{len(args.rg)}, from file {args.rg[i + 1]}.")
             ex_type, ex, tb = sys.exc_info()
             logger.critical(traceback.format_exc(ex) + "\n")
             if len(RG) <= i:  # if exception raised before appending to RG
@@ -529,7 +529,7 @@ def estimate_rg(args):
 
     logger.info(
         "\nSummary of Genetic Correlation Results\n"
-        + _get_rg_table(rg_paths, RG, out_prefix, args)
+        + _get_rg_table(args.rg, RG, out_prefix, args)
     )
     return RG
 
@@ -551,7 +551,7 @@ def _read_other_sumstats(args, p2, sumstats, ref_ld_cnames):
     return loop
 
 
-def _get_rg_table(rg_paths, RG, output_prefix: Path, args):
+def _get_rg_table(rg_paths: list[Path], RG, output_prefix: Path, args):
     """Print a table of genetic correlations."""
     output_path = output_prefix.parent / f"{output_prefix.name}.rg_results"
 
@@ -674,16 +674,6 @@ def _rg(sumstats, args, M_annot, ref_ld_cnames, w_ld_cname, i):
     )
 
     return rghat
-
-
-def _parse_rg(rg):
-    """Parse args.rg."""
-    rg_paths = _splitp(rg)
-    rg_files = [x.stem for x in rg_paths]
-    if len(rg_paths) < 2:
-        raise ValueError("Must specify at least two phenotypes for rg estimation.")
-
-    return rg_paths, rg_files
 
 
 def _print_rg_delete_values(rg, fh):
