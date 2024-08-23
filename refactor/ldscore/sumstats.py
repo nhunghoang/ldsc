@@ -18,8 +18,6 @@ from . import regressions as reg
 import sys
 import traceback
 import copy
-import os
-import glob
 import functools
 from .ldsc_check_args import check_args
 from logger import LDSCLogger
@@ -75,15 +73,17 @@ def _splitp(fstr: Union[str, Path]):
     return flist
 
 
-def _select_and_log(x, ii, log, msg):
+def _select_and_log(x, ii):
     """Fiter down to rows that are True in ii. Log # of SNPs removed."""
     new_len = ii.sum()
+    msg = f"{new_len if new_len != 0 else 0} SNPs with valid alleles."
+
     if new_len == 0:
-        raise ValueError(msg.format(N=0))
+        raise ValueError(msg)
     else:
         x = x[ii]
-        f"{new_len} SNPs with valid alleles."
-        logger.info(f"{new_len} SNPs with valid alleles.")
+        
+        logger.info(msg)
     return x
 
 
@@ -110,14 +110,13 @@ def _read_ref_ld(args):
     return ref_ld
 
 
-def _read_annot(args, log):
+def _read_annot(args,):
     """Read annot matrix."""
     try:
         if args.ref_ld is not None:
             overlap_matrix, M_tot = _read_chr_split_files(
                 args.ref_ld_chr,
                 args.ref_ld,
-                log,
                 "annot matrix",
                 ps.annot,
                 frqfile=args.frqfile,
@@ -126,7 +125,6 @@ def _read_annot(args, log):
             overlap_matrix, M_tot = _read_chr_split_files(
                 args.ref_ld_chr,
                 args.ref_ld,
-                log,
                 "annot matrix",
                 ps.annot,
                 frqfile=args.frqfile_chr,
@@ -138,7 +136,7 @@ def _read_annot(args, log):
     return overlap_matrix, M_tot
 
 
-def _read_M(args, log, n_annot):
+def _read_M(args, n_annot):
     """Read M (--M, --M-file, etc)."""
     if args.M:
         try:
@@ -163,7 +161,7 @@ def _read_M(args, log, n_annot):
     return M_annot
 
 
-def _read_w_ld(args, log):
+def _read_w_ld(args):
     """Read regression SNP LD."""
     if (args.w_ld and "," in args.w_ld.name) or (
         args.w_ld_chr and "," in args.w_ld_chr.name
@@ -171,7 +169,7 @@ def _read_w_ld(args, log):
         raise ValueError("--w-ld must point to a single fileset (no commas allowed).")
     print(f"w_ld: {args.w_ld}")
     w_ld = _read_chr_split_files(
-        args.w_ld_chr, args.w_ld, log, "regression weight LD Score", ps.ldscore_fromlist
+        args.w_ld_chr, args.w_ld, "regression weight LD Score", ps.ldscore_fromlist
     )
     if len(w_ld.columns) != 2:
         raise ValueError("--w-ld may only have one LD Score column.")
@@ -253,25 +251,25 @@ def _warn_length(sumstats):
         logger.warn("WARNING: number of SNPs less than 200k; this is almost always bad.")
 
 
-def _print_cov(ldscore_reg, ofh, log):
+def _print_cov(ldscore_reg, ofh):
     """Prints covariance matrix of slopes."""
     logger.info("Printing covariance matrix of the estimates to {ofh}.")
     np.savetxt(ofh, ldscore_reg.coef_cov)
 
 
-def _print_delete_values(ldscore_reg, ofh, log):
+def _print_delete_values(ldscore_reg, ofh):
     """Prints block jackknife delete-k values"""
     logger.info("Printing block jackknife delete values to {ofh}.")
     np.savetxt(ofh, ldscore_reg.tot_delete_values)
 
 
-def _print_part_delete_values(ldscore_reg, ofh, log):
+def _print_part_delete_values(ldscore_reg, ofh):
     """Prints partitioned block jackknife delete-k values"""
     logger.info("Printing partitioned block jackknife delete values to {ofh}.")
     np.savetxt(ofh, ldscore_reg.part_delete_values)
 
 
-def _merge_and_log(ld, sumstats, noun, log):
+def _merge_and_log(ld, sumstats, noun):
     """Wrap smart merge with log messages about # of SNPs."""
     sumstats = smart_merge(ld, sumstats)
     msg = f"After merging with {noun}, {len(sumstats)} SNPs remain."
@@ -298,7 +296,7 @@ def _read_ld_sumstats(args, fh, alleles=False, dropna=True):
     return M_annot, w_ld_cname, ref_ld_cnames, sumstats, novar_cols
 
 
-def cell_type_specific(args, log):
+def cell_type_specific(args):
     """Cell type specific analysis"""
     check_args(args)
     args = copy.deepcopy(args)
@@ -385,7 +383,7 @@ def reshape_array(matrix, n_snps: int) -> np.array:
     return np.array(matrix).reshape((n_snps, 1))
 
 
-def estimate_h2(args, log) -> reg.Hsq:
+def estimate_h2(args) -> reg.Hsq:
     """Estimate h2 and partitioned h2."""
 
     check_args(args)
@@ -445,21 +443,21 @@ def estimate_h2(args, log) -> reg.Hsq:
     )
 
     if args.print_cov:
-        _print_cov(hsqhat, ps.sub_chr(args.out, ".cov"), log)
+        _print_cov(hsqhat, ps.sub_chr(args.out, ".cov"))
     if args.print_delete_vals:
-        _print_delete_values(hsqhat, ps.sub_chr(args.out, ".delete"), log)
-        _print_part_delete_values(hsqhat, ps.sub_chr(args.out, ".part_delete"), log)
+        _print_delete_values(hsqhat, ps.sub_chr(args.out, ".delete"))
+        _print_part_delete_values(hsqhat, ps.sub_chr(args.out, ".part_delete"))
 
 
     hsqhat.summary(
-        log, ref_ld_cnames, P=args.samp_prev, K=args.pop_prev, overlap=args.overlap_annot
+        ref_ld_cnames, P=args.samp_prev, K=args.pop_prev, overlap=args.overlap_annot
     )
 
     # write output to a file
     hsqhat.write_h2_results(args.out)
 
     if args.overlap_annot:
-        overlap_matrix, M_tot = _read_annot(args, log)
+        overlap_matrix, M_tot = _read_annot(args)
 
         # overlap_matrix = overlap_matrix[np.array(~novar_cols), np.array(~novar_cols)]#np.logical_not
         df_results = hsqhat._overlap_output(
@@ -471,7 +469,7 @@ def estimate_h2(args, log) -> reg.Hsq:
     return hsqhat
 
 
-def estimate_rg(args, log):
+def estimate_rg(args):
     """Estimate rg between trait 1 and a list of other traits."""
     check_args(args)
 
@@ -512,14 +510,14 @@ def estimate_rg(args, log):
     for i, p2 in enumerate(rg_paths[1:n_pheno]):
         logger.info(f"Computing rg for phenotype {i + 2}/{len(rg_paths)}")
         try:
-            loop = _read_other_sumstats(args, log, p2, sumstats, ref_ld_cnames)
-            rghat = _rg(loop, args, log, M_annot, ref_ld_cnames, w_ld_cname, i)
+            loop = _read_other_sumstats(args, p2, sumstats, ref_ld_cnames)
+            rghat = _rg(loop, args, M_annot, ref_ld_cnames, w_ld_cname, i)
             RG.append(rghat)
-            _print_gencor(args, log, rghat, ref_ld_cnames, i, rg_paths, i == 0)
+            _print_gencor(args, rghat, ref_ld_cnames, i, rg_paths, i == 0)
             if args.print_cov:
-                _print_rg_cov(rghat, f"{out_prefix}.cov", log)
+                _print_rg_cov(rghat, f"{out_prefix}.cov")
             if args.print_delete_vals:
-                _print_rg_delete_values(rghat, f"{out_prefix}.delete_vals", log)
+                _print_rg_delete_values(rghat, f"{out_prefix}.delete_vals")
 
         except Exception:  # keep going if phenotype 50/100 causes an error
             
@@ -536,9 +534,9 @@ def estimate_rg(args, log):
     return RG
 
 
-def _read_other_sumstats(args, log, p2, sumstats, ref_ld_cnames):
+def _read_other_sumstats(args, p2, sumstats, ref_ld_cnames):
     loop = _read_sumstats(args, p2, alleles=True, dropna=False)
-    loop = _merge_sumstats_sumstats(args, sumstats, loop, log)
+    loop = _merge_sumstats_sumstats(args, sumstats, loop)
     loop = loop.dropna(how="any")
     alleles = loop.A1 + loop.A2 + loop.A1x + loop.A2x
     if not args.no_check_alleles:
@@ -548,8 +546,8 @@ def _read_other_sumstats(args, log, p2, sumstats, ref_ld_cnames):
         loop["Z2"] = _align_alleles(loop.Z2, alleles)
 
     loop = loop.drop(["A1", "A1x", "A2", "A2x"], axis=1)
-    _check_ld_condnum(args, log, loop[ref_ld_cnames])
-    _warn_length(log, loop)
+    _check_ld_condnum(args, loop[ref_ld_cnames])
+    _warn_length(loop)
     return loop
 
 
@@ -597,7 +595,7 @@ def _get_rg_table(rg_paths, RG, output_prefix: Path, args):
     return x.to_string(header=True, index=False) + "\n"
 
 
-def _print_gencor(args, log, rghat, ref_ld_cnames, i, rg_paths, print_hsq1):
+def _print_gencor(args, rghat, ref_ld_cnames, i, rg_paths, print_hsq1):
     l = lambda x: x + "".join(["-" for i in range(len(x.replace("\n", "")))])
     P = [args.samp_prev[0], args.samp_prev[i + 1]]
     K = [args.pop_prev[0], args.pop_prev[i + 1]]
@@ -606,23 +604,25 @@ def _print_gencor(args, log, rghat, ref_ld_cnames, i, rg_paths, print_hsq1):
         args.pop_prev = [None, None]
     if print_hsq1:
         logger.info(l("\nHeritability of phenotype 1\n"))
-        logger.info(rghat.hsq1.summary(log, ref_ld_colnames=ref_ld_cnames, P=P[0], K=K[0]))
+        logger.info(rghat.hsq1.summary(ref_ld_colnames=ref_ld_cnames, P=P[0], K=K[0]))
 
+    # write the heritability of phenotype to a file
     logger.info(l("\nHeritability of phenotype {I}/{N}\n".format(I=i + 2, N=len(rg_paths))))
-    logger.info(rghat.hsq2.summary(log, ref_ld_colnames=ref_ld_cnames, P=P[1], K=K[1]))
+    rghat.hsq2.summary(ref_ld_colnames=ref_ld_cnames, P=P[1], K=K[1])
+    # write the genetic correlation to a file
     logger.info(l("\nGenetic Covariance\n"))
-    logger.info(rghat.gencov.summary(ref_ld_colnames=ref_ld_cnames, P=P, K=K))
+    rghat.gencov.summary(ref_ld_colnames=ref_ld_cnames, P=P, K=K)
     logger.info(l("\nGenetic Correlation\n"))
-    logger.info(rghat.summary() + "\n")
+    rghat.summary()
 
 
-def _merge_sumstats_sumstats(args, sumstats1, sumstats2, log):
+def _merge_sumstats_sumstats(args, sumstats1, sumstats2):
     """Merge two sets of summary statistics."""
     sumstats1.rename(columns={"N": "N1", "Z": "Z1"}, inplace=True)
     sumstats2.rename(
         columns={"A1": "A1x", "A2": "A2x", "N": "N2", "Z": "Z2"}, inplace=True
     )
-    x = _merge_and_log(sumstats1, sumstats2, "summary statistics", log)
+    x = _merge_and_log(sumstats1, sumstats2, "summary statistics")
     return x
 
 
@@ -643,7 +643,7 @@ def _align_alleles(z, alleles):
     return z
 
 
-def _rg(sumstats, args, log, M_annot, ref_ld_cnames, w_ld_cname, i):
+def _rg(sumstats, args, M_annot, ref_ld_cnames, w_ld_cname, i):
     """Run the regressions."""
     n_snp = len(sumstats)
 
@@ -686,18 +686,18 @@ def _parse_rg(rg):
     return rg_paths, rg_files
 
 
-def _print_rg_delete_values(rg, fh, log):
+def _print_rg_delete_values(rg, fh):
     """Print block jackknife delete values."""
-    _print_delete_values(rg.hsq1, fh + ".hsq1.delete", log)
-    _print_delete_values(rg.hsq2, fh + ".hsq2.delete", log)
-    _print_delete_values(rg.gencov, fh + ".gencov.delete", log)
+    _print_delete_values(rg.hsq1, fh + ".hsq1.delete")
+    _print_delete_values(rg.hsq2, fh + ".hsq2.delete")
+    _print_delete_values(rg.gencov, fh + ".gencov.delete")
 
 
-def _print_rg_cov(rghat, fh, log):
+def _print_rg_cov(rghat, fh):
     """Print covariance matrix of estimates."""
-    _print_cov(rghat.hsq1, fh + ".hsq1.cov", log)
-    _print_cov(rghat.hsq2, fh + ".hsq2.cov", log)
-    _print_cov(rghat.gencov, fh + ".gencov.cov", log)
+    _print_cov(rghat.hsq1, fh + ".hsq1.cov")
+    _print_cov(rghat.hsq2, fh + ".hsq2.cov")
+    _print_cov(rghat.gencov, fh + ".gencov.cov")
 
 
 def _split_or_none(x, phenotype_count: int):

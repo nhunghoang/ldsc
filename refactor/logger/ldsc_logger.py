@@ -1,18 +1,19 @@
+import logging
 from typing import Any
 from log import CustomLogger
 from .default_header import MASTHEAD
 
+
 class LDSCLogger(CustomLogger):
 
-    def __init__(self) -> None:
-        super().__init__()
-    
-    def print_header(self, args: list[Any], parser) -> None:
-        self.info(MASTHEAD)
+    def __init__(self, name:str, level: int = logging.NOTSET) -> None:
+        super().__init__(name, level)
 
-        defaults = vars(parser.parse_args(""))
+    def print_header(self, args: list[Any], parser) -> None:
+
         opts = vars(args)
-        non_defaults = [x for x in list(opts.keys()) if opts[x] != defaults[x]]
+
+        non_defaults = [x for x in list(opts.keys()) if opts[x] is not None]
         header = MASTHEAD
         header += "Call: \n"
         header += "./ldsc.py \\\n"
@@ -23,7 +24,7 @@ class LDSCLogger(CustomLogger):
 
         header += "\n".join(options).replace("True", "").replace("False", "")
         header = header[0:-1] + "\n"
-        self.header(header)
+        self.info(header)
 
 
-        
+logging.setLoggerClass(LDSCLogger)    

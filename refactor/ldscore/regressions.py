@@ -8,6 +8,7 @@ Last column = intercept.
 
 """
 
+import logging
 from pathlib import Path
 from typing import Any, Union
 import numpy as np
@@ -17,6 +18,9 @@ from . import jackknife as jk
 from .irwls import IRWLS
 from scipy.stats import t as tdist
 from collections import namedtuple
+from logger import LDSCLogger
+
+logger: logging.Logger = LDSCLogger.get_logger(__name__)
 
 np.seterr(divide="raise", invalid="raise")
 
@@ -542,7 +546,7 @@ class Hsq(LD_Score_Regression):
             h2_output_file.write("h2\th2_stderr\tlambda_gc\tmean_chi2\tintercept_constrained\tintercept\intercept_stderr\tscale\tcategories\tsnp_proportion\th2g_proportion\tenrichment\tcoefficients\tcoefficients_stderr\tratio\tratio_stderr\n")
             h2_output_file.write(f"{self.output_data.get('h2', 'N/A')}\t{self.output_data.get('h2_stderr', 'N/A')}\t{self.output_data.get('lambda_gc', 'N/A')}\t{self.output_data.get('mean_chi2', 'N/A')}\t{self.output_data.get('constrained', 'N/A')}\t{self.output_data.get('intercept', 'N/A')}\t{self.output_data.get('intercept_stderr', 'N/A')}\t{self.output_data.get('scale', 'N/A')}\t{self.output_data.get('categories', 'N/A')}\t{self.output_data.get('snp_proportion', 'N/A')}\t{self.output_data.get('h2g_proportion', 'N/A')}\t{self.output_data.get('enrichment', 'N/A')}\t{self.output_data.get('coefficients', 'N/A')}\t{self.output_data.get('coefficients_stderr', 'N/A')}\t{self.output_data.get('ratio', 'N/A')}\t{self.output_data.get('ratio_stderr', 'N/A')}\n")
 
-    def summary(self, log, ref_ld_colnames=None, P=None, K=None, overlap=False) -> None:
+    def summary(self, ref_ld_colnames=None, P=None, K=None, overlap=False) -> None:
         """Print summary of the LD Score Regression."""
         if P is not None and K is not None:
             T = "Liability"
@@ -556,7 +560,7 @@ class Hsq(LD_Score_Regression):
         h2 = s(c * self.tot)
         h2_stderr = s(c * self.tot_se)
 
-        log.log(f"Total {T} scale h2: {h2} ({h2_stderr})")
+        logger.info(f"Total {T} scale h2: {h2} ({h2_stderr})")
         # out = [
 
         # we are going to set values for variables that may be updated 
@@ -575,7 +579,7 @@ class Hsq(LD_Score_Regression):
 
             categories = ' '.join(ref_ld_colnames)
 
-            log.log(f"Categories: {categories}")
+            logger.info(f"Categories: {categories}")
 
             if not overlap:
                 h2 = s(c * self.cat)
@@ -586,19 +590,19 @@ class Hsq(LD_Score_Regression):
                 coefficients = s(self.coef)
                 coefficients_stderr = s(self.coef_se)
 
-                log.log(f"{T} scale h2: {h2}")
-                log.log(f"{T} scale h2 SE: {h2_stderr}")
-                log.log(f"Proportion of SNPs: {snp_proportion}")
-                log.log(f"Proportion of h2g: {h2g_proportion}")
-                log.log(f"Enrichment: {enrichment}")
-                log.log(f"Coefficients: {coefficients}")
-                log.log(f"Coefficient SE:  {coefficients_stderr}")
+                logger.info(f"{T} scale h2: {h2}")
+                logger.info(f"{T} scale h2 SE: {h2_stderr}")
+                logger.info(f"Proportion of SNPs: {snp_proportion}")
+                logger.info(f"Proportion of h2g: {h2g_proportion}")
+                logger.info(f"Enrichment: {enrichment}")
+                logger.info(f"Coefficients: {coefficients}")
+                logger.info(f"Coefficient SE:  {coefficients_stderr}")
 
         lambda_gc = s(self.lambda_gc)
         mean_chi2 = s(self.mean_chisq)
         
-        log.log(f"Lambda GC: {lambda_gc}")
-        log.log(f"Mean Chi^2: {mean_chi2}")
+        logger.info(f"Lambda GC: {lambda_gc}")
+        logger.info(f"Mean Chi^2: {mean_chi2}")
 
         self.output_data["categories"] = categories
         self.output_data["h2"] = h2
@@ -619,25 +623,25 @@ class Hsq(LD_Score_Regression):
         if self.constrain_intercept:
             intercept = s(self.intercept)
             intercept_stderr = "N/A"
-            log.log(f"Intercept: constrained to {intercept}")
+            logger.info(f"Intercept: constrained to {intercept}")
         else:
             intercept = s(self.intercept)
             intercept_stderr = s(self.intercept_se)
-            log.log(
+            logger.info(
                 f"Intercept: {intercept} ({intercept_stderr})"
             )
             if self.mean_chisq > 1:
                 if self.ratio < 0:
-                    log.log("Ratio < 0 (usually indicates GC correction).")
+                    logger.info("Ratio < 0 (usually indicates GC correction).")
                     self.output_data["ratio_stderr"] = "N/A"
                 else:
-                    log.log(
+                    logger.info(
                         f"Ratio: {s(self.ratio)} ({s(self.ratio_se)})"
                     )
                     self.output_data["ratio"] = s(self.ratio)
                     self.output_data["ratio_stderr"] = s(self.ratio_se)
             else:
-                log.log("Ratio: NA (mean chi^2 < 1)")
+                logger.info("Ratio: NA (mean chi^2 < 1)")
         
         self.output_data["intercept"] = intercept
         self.output_data["intercept_stderr"] = intercept_stderr
@@ -986,37 +990,34 @@ class RG(object):
             self.rg_ratio = float(rg_ratio)
             self.p, self.z = p_z_norm(self.rg_ratio, self.rg_se)
 
-    def summary(self, silly=False):
+    def summary(self) -> None:
         """Print output of Gencor object."""
-        out = []
+
         if self._negative_hsq:
-            out.append("Genetic Correlation: nan (nan) (h2  out of bounds) ")
-            out.append("Z-score: nan (nan) (h2  out of bounds)")
-            out.append("P: nan (nan) (h2  out of bounds)")
-            out.append("WARNING: One of the h2's was out of bounds.")
-            out.append(
-                "This usually indicates a data-munging error "
-                + "or that h2 or N is low."
-            )
-        elif (self.rg_ratio > 1.2 or self.rg_ratio < -1.2) and not silly:
-            out.append("Genetic Correlation: nan (nan) (rg out of bounds) ")
-            out.append("Z-score: nan (nan) (rg out of bounds)")
-            out.append("P: nan (nan) (rg out of bounds)")
-            out.append("WARNING: rg was out of bounds.")
+            logger.warning("Genetic Correlation: nan (nan) (h2  out of bounds) ")
+            logger.warning("Z-score: nan (nan) (h2  out of bounds)")
+            logger.warning("P: nan (nan) (h2  out of bounds)")
+            logger.warning("WARNING: One of the h2's was out of bounds. This usually indicates a data-munging error or that h2 or N is low.")
+            
+        elif (self.rg_ratio > 1.2 or self.rg_ratio < -1.2):
+            logger.warning("Genetic Correlation: nan (nan) (rg out of bounds) ")
+            logger.warning("Z-score: nan (nan) (rg out of bounds)")
+            logger.warning("P: nan (nan) (rg out of bounds)")
+            logger.warning("WARNING: rg was out of bounds.")
             if self.intercept_gencov is None:
-                out.append(
+                logger.warning(
                     "This often means that h2 is not significantly "
                     + "different from zero."
                 )
             else:
-                out.append(
+                logger.warning(
                     "This often means that you have constrained"
                     + " the intercepts to the wrong values."
                 )
         else:
-            out.append(
+            logger.info(
                 "Genetic Correlation: " + s(self.rg_ratio) + " (" + s(self.rg_se) + ")"
             )
-            out.append("Z-score: " + s(self.z))
-            out.append("P: " + s(self.p))
-        return remove_brackets("\n".join(out))
+            logger.info("Z-score: " + s(self.z))
+            logger.info("P: " + s(self.p))
+

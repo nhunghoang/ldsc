@@ -12,12 +12,12 @@ from rich_argparse import RichHelpFormatter
 class LDSCconfig(ParserConfig):
 
     @staticmethod
-    def _add_subparsers(parser: argparse.ArgumentParser) -> None:
-        """add three subparsers to the ldsc parser to represent the rg, the h2, the h2_cts and generate_ldscores commands"""
+    def _add_subparsers(parser: argparse.ArgumentParser, parent: list[argparse.ArgumentParser]) -> None:
+        """add three subparsers to the ldsc parser to represent the rg, the h2, the h2_cts and generate-ldscores commands"""
 
         ldsc_subparser = parser.add_subparsers(
             title="ldsc pipeline subcommands",
-            description="select either rg, h2, or h2-cts",
+            description="select either rg, h2, or h2-cts, generate-ldscores",
         )
 
         # create a parser for the rg commands and set a default function
@@ -25,6 +25,7 @@ class LDSCconfig(ParserConfig):
             "rg",
             help="command that is used run the rg functionality",
             formatter_class=RichHelpFormatter,
+            parents=parent
         )
 
         rg_parser.add_argument(
@@ -40,6 +41,7 @@ class LDSCconfig(ParserConfig):
             "h2",
             help="command that is used run the h2 functionality",
             formatter_class=RichHelpFormatter,
+            parents=parent
         )
 
         h2_parser.add_argument(
@@ -56,6 +58,7 @@ class LDSCconfig(ParserConfig):
             "h2-cts",
             help="command that is used run the h2-cts functionality",
             formatter_class=RichHelpFormatter,
+            parents=parent
         )
 
         h2_cts_parser.add_argument(
@@ -73,6 +76,7 @@ class LDSCconfig(ParserConfig):
             "generate-ldscores",
             help="command that is used to generate ldscores",
             formatter_class=RichHelpFormatter,
+            parents=parent
         )
 
         ldscore_parser.add_argument(
@@ -238,20 +242,14 @@ class LDSCconfig(ParserConfig):
         ldscore_parser.set_defaults(func=ld.ldscore)
 
 
-
     @staticmethod
-    def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    def configure_parser(parser: argparse.ArgumentParser, parent_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         """Add the appropriate flags and subcommands to the ldsc parser"""
-
-        LDSCconfig._add_subparsers(parser)
-
-        # Fancy LD Score Estimation Flags
-        
-        
-        
         # Basic Flags for Working with Variance Components
-        
-        ref_ld_group = parser.add_mutually_exclusive_group(required=False)
+        common_ldsc_parser = argparse.ArgumentParser(
+            formatter_class=RichHelpFormatter, add_help=False
+        )
+        ref_ld_group = common_ldsc_parser.add_mutually_exclusive_group(required=False)
 
         ref_ld_group.add_argument(
             "--ref-ld",
@@ -274,7 +272,7 @@ class LDSCconfig(ParserConfig):
             "Example 2: --ref-ld-chr ld/@_kg will read ld/1_kg.l2.ldscore.gz ... ld/22_kg.l2.ldscore.gz",
         )
 
-        w_ld_group = parser.add_mutually_exclusive_group(required=False)
+        w_ld_group = common_ldsc_parser.add_mutually_exclusive_group(required=False)
         
         w_ld_group.add_argument(
             "--w-ld",
@@ -291,7 +289,7 @@ class LDSCconfig(ParserConfig):
             "manner as --ref-ld-chr.",
         )
 
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--overlap-annot",
             default=False,
             action="store_true",
@@ -299,72 +297,72 @@ class LDSCconfig(ParserConfig):
             "annot matrix with overlapping categories (i.e., not all row sums equal 1), "
             "and prevents LDSC from displaying output that is meaningless with overlapping categories.",
         )
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--print-coefficients",
             default=False,
             action="store_true",
             help="when categories are overlapping, print coefficients as well as heritabilities.",
         )
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--frqfile",
             type=str,
             help="For use with --overlap-annot. Provides allele frequencies to prune to common "
             "snps if --not-M-5-50 is not set.",
         )
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--frqfile-chr", type=str, help="Prefix for --frqfile files split over chromosome."
         )
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--no-intercept",
             action="store_true",
             help="If used with --h2, this constrains the LD Score regression intercept to equal "
             "1. If used with --rg, this constrains the LD Score regression intercepts for the h2 "
             "estimates to be one and the intercept for the genetic covariance estimate to be zero.",
         )
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--intercept-h2",
             action="store",
             default=None,
             help="Intercepts for constrained-intercept single-trait LD Score regression.",
         )
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--intercept-gencov",
             action="store",
             default=None,
             help="Intercepts for constrained-intercept cross-trait LD Score regression."
             " Must have same length as --rg. The first entry is ignored.",
         )
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--M",
             default=None,
             type=str,
             help="# of SNPs (if you don't want to use the .l2.M files that came with your .l2.ldscore.gz files)",
         )
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--two-step",
             default=None,
             type=float,
             help="Test statistic bound for use with the two-step estimator. Not compatible with --no-intercept and --constrain-intercept.",
         )
-        parser.add_argument("--chisq-max", default=None, type=float, help="Max chi^2.")
+        common_ldsc_parser.add_argument("--chisq-max", default=None, type=float, help="Max chi^2.")
 
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--ref-ld-chr-cts",
             default=None,
             type=str,
             help="Name of a file that has a list of file name prefixes for cell-type-specific analysis.",
         )
-        parser.add_argument("--print-all-cts", action="store_true", default=False)
+        common_ldsc_parser.add_argument("--print-all-cts", action="store_true", default=False)
 
         # Flags for both LD Score estimation and h2/gencor estimation
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--print-cov",
             default=False,
             action="store_true",
             help="For use with --h2/--rg. This flag tells LDSC to print the "
             "covaraince matrix of the estimates.",
         )
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--print-delete-vals",
             default=False,
             action="store_true",
@@ -374,37 +372,26 @@ class LDSCconfig(ParserConfig):
             "(# of LD Scores) columns.",
         )
         # Flags you should almost never use
+    
         
-        parser.add_argument(
-            "--pickle",
-            default=False,
-            action="store_true",
-            help="Store .l2.ldscore files as pickles instead of gzipped tab-delimited text.",
-        )
-        
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--invert-anyway",
             default=False,
             action="store_true",
             help="Force LDSC to attempt to invert ill-conditioned matrices.",
         )
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--n-blocks", default=200, type=int, help="Number of block jackknife blocks.", action=ChecknBlocks
         )
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--not-M-5-50",
             default=False,
             action="store_true",
             help="This flag tells LDSC to use the .l2.M file instead of the .l2.M_5_50 file.",
         )
-        parser.add_argument(
-            "--return-silly-things",
-            default=False,
-            action="store_true",
-            help="Force ldsc to return silly genetic correlation estimates.",
-        )
 
-        parser.add_argument(
+
+        common_ldsc_parser.add_argument(
             "--no-check-alleles",
             default=False,
             action="store_true",
@@ -414,14 +401,16 @@ class LDSCconfig(ParserConfig):
         )
 
         # transform to liability scale
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--samp-prev",
             default=None,
             help="Sample prevalence of binary phenotype (for conversion to liability scale).",
         )
-        parser.add_argument(
+        common_ldsc_parser.add_argument(
             "--pop-prev",
             default=None,
             help="Population prevalence of binary phenotype (for conversion to liability scale).",
         )
+
+        LDSCconfig._add_subparsers(parser, parent=[common_ldsc_parser, parent_parser])
 

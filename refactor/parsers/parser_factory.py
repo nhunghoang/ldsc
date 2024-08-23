@@ -7,7 +7,7 @@ from .make_annot_parser import MakeAnnotconfig
 from rich_argparse import RichHelpFormatter
 
 
-def _configure_parsers(parsers: list[argparse.ArgumentParser]) -> None:
+def _configure_parsers(parsers: list[argparse.ArgumentParser], parent_parser: argparse.ArgumentParser) -> None:
     """configure the parser to have the appropriate commandline arguments based on the choices the user selects"""
 
     configuration_opts: dict[str, ParserConfig] = {
@@ -18,7 +18,7 @@ def _configure_parsers(parsers: list[argparse.ArgumentParser]) -> None:
 
     for parser in parsers:
         if (config_obj := configuration_opts.get(parser.description)):
-            config_obj.configure_parser(parser)
+            config_obj.configure_parser(parser, parent_parser)
         else:
             raise ValueError("There was an issue configuring the parsers")
 
@@ -51,7 +51,6 @@ def generate_parser() -> argparse.ArgumentParser:
         "--out",
         default="ldsc",
         type=Path,
-        required=True,
         help="output filename prefix. If only a filename is given then it will be written to the current directory. If a full path with the output prefix is given then the file will be written there. (default: %(default)s)"
     )
 
@@ -72,14 +71,14 @@ def generate_parser() -> argparse.ArgumentParser:
 
     logging_group.add_argument(
         "--log-to-console",
-        default=False,
+        default=True,
         help="Optional flag to log to only the console or also a file",
         action="store_true",
     )
 
     logging_group.add_argument(
         "--log-filename",
-        default="test.log",
+        default="LDSC.log",
         type=str,
         help="Name for the log output file. (default: %(default)s)",
     )
@@ -116,7 +115,7 @@ def generate_parser() -> argparse.ArgumentParser:
     )
 
     
-    _configure_parsers([ldsc_parser, munge_sumstats_parser, make_annot_parser])
+    _configure_parsers([ldsc_parser, munge_sumstats_parser, make_annot_parser], parent_parser=common_parser)
 
     return main_parser
     # configure_parser

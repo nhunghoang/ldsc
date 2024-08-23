@@ -7,13 +7,19 @@ def main() -> None:
     """main function that will be called for ldsc"""
 
     main_parser = generate_parser()
+    
 
     args = main_parser.parse_args()
+
 
     start_time = datetime.now()
 
     # create a logger and configure it
     logger = LDSCLogger.create_logger()
+
+    log_stem, log_prefix = args.log_filename.split(".")
+
+    args.log_filename = f"{log_stem}_{args.func.__name__}.{log_prefix}"
 
     logger.configure(
         args.out.parent, args.log_filename, args.verbose, args.log_to_console

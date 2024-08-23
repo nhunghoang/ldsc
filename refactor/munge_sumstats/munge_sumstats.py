@@ -312,15 +312,15 @@ def parse_dat(dat_gen, convert_colname, merge_alleles, args):
 
     # logger.info(" done\n")
     dat = pd.concat(dat_list, axis=0).reset_index(drop=True)
-    logger.info(f"Read {tot_snps} SNPs from --sumstats file.\n")
+    logger.info(f"Read {tot_snps} SNPs from --sumstats file.")
     if args.merge_alleles:
-        logger.info(f"Removed {drops["MERGE"]} SNPs not in --merge-alleles.\n")
+        logger.info(f"Removed {drops['MERGE']} SNPs not in --merge-alleles.")
 
-    logger.info(f"Removed {drops["NA"]} SNPs with missing values.\n")
-    logger.info(f"Removed {drops["INFO"]} SNPs with INFO <= {args.info_min}.\n")
-    logger.info(f"Removed {drops["FRG"]} SNPs with MAF <= {args.maf_min}.\n")
-    logger.info(f"Removed {drops["P"]} SNPs with out-of-bounds p-values.\n")
-    logger.info(f"Removed {drops["A"]} variants that were not SNPs or were strand-ambiguous.\n")
+    logger.info(f"Removed {drops['NA']} SNPs with missing values.")
+    logger.info(f"Removed {drops['INFO']} SNPs with INFO <= {args.info_min}.")
+    logger.info(f"Removed {drops['FRQ']} SNPs with MAF <= {args.maf_min}.")
+    logger.info(f"Removed {drops['P']} SNPs with out-of-bounds p-values.")
+    logger.info(f"Removed {drops['A']} variants that were not SNPs or were strand-ambiguous.")
     logger.info(f"{len(dat)} SNPs remain.")
     return dat
 
