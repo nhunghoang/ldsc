@@ -14,20 +14,9 @@ from typing import Any
 
 import argparse
 
-from log import CustomLogger
+from logger import LDSCLogger
 
-logger: logging.Logger = CustomLogger.get_logger(__name__)
-
-
-__version__ = "2.0.2"
-MASTHEAD = "*********************************************************************\n"
-MASTHEAD += "* LD Score Regression (LDSC)\n"
-MASTHEAD += "* Version {V}\n".format(V=__version__)
-MASTHEAD += "* (C) 2014-2019 Brendan Bulik-Sullivan and Hilary Finucane\n"
-MASTHEAD += "* Broad Institute of MIT and Harvard / MIT Department of Mathematics\n"
-MASTHEAD += "* GNU General Public License v3\n"
-MASTHEAD += "*********************************************************************\n"
-
+logger: logging.Logger = LDSCLogger.get_logger(__name__)
 
 
 def check_args(args: list[Any]) -> None:
@@ -68,76 +57,3 @@ def check_args(args: list[Any]) -> None:
             raise argparse.ArgumentError(
                 "Must set either --frqfile and --ref-ld or --frqfile-chr and --ref-ld-chr"
             )
-
-
-
-
-
-#     """main function that will have the logic for ldsc"""
-# args = parser.parse_args()
-
-# log = Logger(args.out.name +  ".log")
-
-# log2 = CustomLogger.create_logger()
-
-# log2.configure(args.out.parent, f"{args.out.name}.log2", 1, True)
-
-# defaults = vars(parser.parse_args(""))
-# opts = vars(args)
-# non_defaults = [x for x in list(opts.keys()) if opts[x] != defaults[x]]
-# header = MASTHEAD
-# header += "Call: \n"
-# header += "./ldsc.py \\\n"
-# options = [
-# "--" + x.replace("_", "-") + " " + str(opts[x]) + " \\"
-# for x in non_defaults
-# ]
-# header += "\n".join(options).replace("True", "").replace("False", "")
-# header = header[0:-1] + "\n"
-# log.log(header)
-# log.log("Beginning analysis at {T}".format(T=time.ctime()))
-# start_time = time.time()
-
-
-
-
-# if __name__ == "__main__":
-
-#     args = parser.parse_args()
-
-#     log = Logger(args.out.name +  ".log")
-
-#     log2 = CustomLogger.create_logger()
-
-#     log2.configure(args.out.parent, f"{args.out.name}.log2", 1, True)
-
-#     try:
-#         defaults = vars(parser.parse_args(""))
-#         opts = vars(args)
-#         non_defaults = [x for x in list(opts.keys()) if opts[x] != defaults[x]]
-#         header = MASTHEAD
-#         header += "Call: \n"
-#         header += "./ldsc.py \\\n"
-#         options = [
-#             "--" + x.replace("_", "-") + " " + str(opts[x]) + " \\"
-#             for x in non_defaults
-#         ]
-#         header += "\n".join(options).replace("True", "").replace("False", "")
-#         header = header[0:-1] + "\n"
-#         log.log(header)
-#         log.log("Beginning analysis at {T}".format(T=time.ctime()))
-#         start_time = time.time()
-
-#             # bad flags
-#         else:
-#             print(header)
-#             print("Error: no analysis selected.")
-#             print("ldsc.py -h describes options.")
-#     except Exception:
-#         ex_type, ex, tb = sys.exc_info()
-#         log.log(traceback.format_exc(ex))
-#         raise
-#     finally:
-#         log.log("Analysis finished at {T}".format(T=time.ctime()))
-#         time_elapsed = round(time.time() - start_time, 2)
-#         # log.log("Total time elapsed: {T}".format(T=sec_to_str(time_elapsed)))

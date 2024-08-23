@@ -6,11 +6,11 @@ import pandas as pd
 import ldscore.parse as ps
 import ldscore.sumstats as sumstats
 import ldscore.regressions as reg
-from log import CustomLogger
+from logger import LDSCLogger
 from .ldsc_check_args import check_args
 
 
-logger: logging.Logger = CustomLogger.get_logger(__name__)
+logger: logging.Logger = LDSCLogger.get_logger(__name__)
 
 def getBlockLefts(coords, max_dist):
     """
@@ -488,7 +488,7 @@ def ldscore(args, log):
 
     """
     check_args(args)
-    
+
     if args.bfile:
         snp_file, snp_obj = args.bfile + ".bim", ps.PlinkBIMFile
         ind_file, ind_obj = args.bfile + ".fam", ps.PlinkFAMFile

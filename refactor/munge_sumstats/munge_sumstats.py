@@ -10,14 +10,15 @@ import gzip
 import bz2
 import argparse
 from scipy.stats import chi2
+from xopen import xopen
 from ldscore import sumstats
 # from ldsc import MASTHEAD, Logger, sec_to_str
 import time
-from log import CustomLogger
+from logger import LDSCLogger
 import logging
 
 
-logger: logging.Logger = CustomLogger.get_logger(__name__)
+logger: logging.Logger = LDSCLogger.get_logger(__name__)
 
 
 null_values = {"LOG_ODDS": 0, "BETA": 0, "OR": 1, "Z": 0}
@@ -131,9 +132,10 @@ numeric_cols = [
 
 def read_header(fh):
     """Read the first line of a file and returns a list with the column names."""
-    opened_file = open_file(fh)
 
-    return [x.rstrip("\n") for x in opened_file.readline().split()]
+    with xopen(fh, "r") as opened_file:
+
+        return [x.rstrip("\n") for x in opened_file.readline().split()]
 
 
 def get_cname_map(flag, default, ignore):
@@ -169,20 +171,6 @@ def get_compression(file_handle):
         compression = None
 
     return compression
-
-
-def open_file(fh):
-    """
-    Read filename suffixes and load the file correctly. figure out whether it is gzipped,bzip2'ed or not compressed
-    """
-    if fh.endswith("gz"):
-        openfile = gzip.open(fh, "rt")
-    elif fh.endswith("bz2"):
-        openfile = bz2.BZ2File(fh)
-    else:
-        openfile = open(fh, "r")
-
-    return openfile
 
 
 def clean_header(header):
@@ -324,21 +312,16 @@ def parse_dat(dat_gen, convert_colname, merge_alleles, args):
 
     # logger.info(" done\n")
     dat = pd.concat(dat_list, axis=0).reset_index(drop=True)
-    msg = "Read {N} SNPs from --sumstats file.\n".format(N=tot_snps)
+    logger.info(f"Read {tot_snps} SNPs from --sumstats file.\n")
     if args.merge_alleles:
-        msg += "Removed {N} SNPs not in --merge-alleles.\n".format(N=drops["MERGE"])
+        logger.info(f"Removed {drops["MERGE"]} SNPs not in --merge-alleles.\n")
 
-    msg += "Removed {N} SNPs with missing values.\n".format(N=drops["NA"])
-    msg += "Removed {N} SNPs with INFO <= {I}.\n".format(
-        N=drops["INFO"], I=args.info_min
-    )
-    msg += "Removed {N} SNPs with MAF <= {M}.\n".format(N=drops["FRQ"], M=args.maf_min)
-    msg += "Removed {N} SNPs with out-of-bounds p-values.\n".format(N=drops["P"])
-    msg += "Removed {N} variants that were not SNPs or were strand-ambiguous.\n".format(
-        N=drops["A"]
-    )
-    msg += f"{len(dat)} SNPs remain."
-    logger.info(msg)
+    logger.info(f"Removed {drops["NA"]} SNPs with missing values.\n")
+    logger.info(f"Removed {drops["INFO"]} SNPs with INFO <= {args.info_min}.\n")
+    logger.info(f"Removed {drops["FRG"]} SNPs with MAF <= {args.maf_min}.\n")
+    logger.info(f"Removed {drops["P"]} SNPs with out-of-bounds p-values.\n")
+    logger.info(f"Removed {drops["A"]} variants that were not SNPs or were strand-ambiguous.\n")
+    logger.info(f"{len(dat)} SNPs remain.")
     return dat
 
 
@@ -482,22 +465,6 @@ def allele_merge(dat, alleles):
     return dat
 # set p = False for testing in order to prevent printing
 def munge_sumstats(args):
-
-    
-
-    # defaults = vars(parser.parse_args(""))
-    # opts = vars(args)
-    # non_defaults = [x for x in list(opts.keys()) if opts[x] != defaults[x]]
-    # header = MASTHEAD
-    # header += "Call: \n"
-    # header += "./munge_sumstats.py \\\n"
-    # options = [
-    #     "--" + x.replace("_", "-") + " " + str(opts[x]) + " \\"
-    #     for x in non_defaults
-    # ]
-    # header += "\n".join(options).replace("True", "").replace("False", "")
-    # header = header[0:-1] + "\n"
-    # log.log(header)
 
     file_cnames = read_header(args.sumstats)  # note keys not cleaned
     flag_cnames, signed_sumstat_null = parse_flag_cnames(args)

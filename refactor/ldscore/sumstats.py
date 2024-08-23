@@ -6,6 +6,7 @@ into memory and checking that the input makes sense. There is no math here. LD S
 regression is implemented in the regressions module.
 """
 
+import logging
 from pathlib import Path
 from typing import Union
 import numpy as np
@@ -21,6 +22,9 @@ import os
 import glob
 import functools
 from .ldsc_check_args import check_args
+from logger import LDSCLogger
+
+logger: logging.Logger = LDSCLogger.get_logger(__name__)
 
 
 _N_CHR = 22
@@ -78,7 +82,8 @@ def _select_and_log(x, ii, log, msg):
         raise ValueError(msg.format(N=0))
     else:
         x = x[ii]
-        log.log(msg.format(N=new_len))
+        f"{new_len} SNPs with valid alleles."
+        logger.info(f"{new_len} SNPs with valid alleles.")
     return x
 
 
@@ -93,16 +98,15 @@ def smart_merge(x, y):
     return out
 
 
-def _read_ref_ld(args, log):
+def _read_ref_ld(args):
     """Read reference LD Scores."""
     ref_ld = _read_chr_split_files(
         args.ref_ld_chr,
         args.ref_ld,
-        log,
         "reference panel LD Score",
         ps.ldscore_fromlist,
     )
-    log.log("Read reference panel LD Scores for {N} SNPs.".format(N=len(ref_ld)))
+    logger.info(f"Read reference panel LD Scores for {len(ref_ld)} SNPs.")
     return ref_ld
 
 
@@ -128,7 +132,7 @@ def _read_annot(args, log):
                 frqfile=args.frqfile_chr,
             )
     except Exception:
-        log.log("Error parsing .annot file.")
+        logger.critical("Error parsing .annot file.")
         raise
 
     return overlap_matrix, M_tot
@@ -172,77 +176,70 @@ def _read_w_ld(args, log):
     if len(w_ld.columns) != 2:
         raise ValueError("--w-ld may only have one LD Score column.")
     w_ld.columns = ["SNP", "LD_weights"]  # prevent colname conflicts w/ ref ld
-    log.log("Read regression weight LD Scores for {N} SNPs.".format(N=len(w_ld)))
+    logger.info(f"Read regression weight LD Scores for {len(w_ld)} SNPs.")
     return w_ld
 
 
-def _read_chr_split_files(chr_arg, not_chr_arg, log, noun, parsefunc, **kwargs):
+def _read_chr_split_files(chr_arg, not_chr_arg, noun, parsefunc, **kwargs):
     """Read files split across 22 chromosomes (annot, ref_ld, w_ld)."""
 
     try:
         if not_chr_arg:
-            log.log(
-                "Reading {N} from {F} ... ({p})".format(
-                    N=noun, F=not_chr_arg, p=parsefunc.__name__
-                )
+            logger.info(
+                f"Reading {noun} from {not_chr_arg} ... ({parsefunc.__name__})"
             )
             out = parsefunc(_splitp(not_chr_arg), **kwargs)
         elif chr_arg:
 
             f = ps.sub_chr(chr_arg, "[1-22]")
-            log.log(
-                "Reading {N} from {F} ... ({p})".format(
-                    N=noun, F=f, p=parsefunc.__name__
-                )
+            logger.info(
+                f"Reading {noun} from {f} ... ({parsefunc.__name__})"
             )
 
             out = parsefunc(_splitp(chr_arg), _N_CHR, **kwargs)
 
     except ValueError as e:
-        log.log("Error parsing {N}.".format(N=noun))
+        logger.critical(f"Error parsing {noun}.")
         raise e
 
     return out
 
 
-def _read_sumstats(args, log, fh: Path, alleles=False, dropna=False):
+def _read_sumstats(args, fh: Path, alleles=False, dropna=False):
     """Parse summary statistics."""
-    log.log("Reading summary statistics from {S} ...".format(S=fh))
+    logger.info(f"Reading summary statistics from {fh} ...")
     sumstats = ps.sumstats(fh, alleles=alleles, dropna=dropna)
-    log_msg = "Read summary statistics for {N} SNPs."
-    log.log(log_msg.format(N=len(sumstats)))
+    logger.info(f"Read summary statistics for {len(sumstats)} SNPs.")
     m = len(sumstats)
     sumstats = sumstats.drop_duplicates(subset="SNP")
     if m > len(sumstats):
-        log.log(
-            "Dropped {M} SNPs with duplicated rs numbers.".format(M=m - len(sumstats))
+        logger.info(
+           f"Dropped {m - len(sumstats)} SNPs with duplicated rs numbers."
         )
 
     return sumstats
 
 
-def _check_ld_condnum(args, log, ref_ld):
+def _check_ld_condnum(args, ref_ld):
     """Check condition number of LD Score matrix."""
     if len(ref_ld.shape) >= 2:
         cond_num = int(np.linalg.cond(ref_ld))
         if cond_num > 100000:
             if args.invert_anyway:
-                warn = "WARNING: LD Score matrix condition number is {C}. "
-                warn += "Inverting anyway because the --invert-anyway flag is set."
-                log.log(warn.format(C=cond_num))
+                logger.warn("WARNING: LD Score matrix condition number is {cond_num}. Inverting anyway because the --invert-anyway flag is set.")
             else:
-                warn = "WARNING: LD Score matrix condition number is {C}. "
-                warn += "Remove collinear LD Scores. "
-                raise ValueError(warn.format(C=cond_num))
+                logger.warn("WARNING: LD Score matrix condition number is {cond_num}. Remove collinear LD Scores. ")
+                raise ValueError("WARNING: LD Score matrix condition number is {cond_num}. Remove collinear LD Scores. ")
 
 
-def _check_variance(log, M_annot, ref_ld):
+def _check_variance(M_annot, ref_ld):
     """Remove zero-variance LD Scores."""
     ii = ref_ld.iloc[:, 1:].var() == 0  # NB there is a SNP column here
     if ii.all():
+        logger.critical("All LD Scores have zero variance.")
         raise ValueError("All LD Scores have zero variance.")
     else:
-        log.log("Removing partitioned LD Scores with zero variance.")
+        logger.info("Removing partitioned LD Scores with zero variance.")
         ii_snp = np.array([True] + list(~ii))
         ii_m = np.array(~ii)
         ref_ld = ref_ld.iloc[:, ii_snp]
@@ -251,50 +248,51 @@ def _check_variance(log, M_annot, ref_ld):
     return M_annot, ref_ld, ii
 
 
-def _warn_length(log, sumstats):
+def _warn_length(sumstats):
     if len(sumstats) < 200000:
-        log.log("WARNING: number of SNPs less than 200k; this is almost always bad.")
+        logger.warn("WARNING: number of SNPs less than 200k; this is almost always bad.")
 
 
 def _print_cov(ldscore_reg, ofh, log):
     """Prints covariance matrix of slopes."""
-    log.log("Printing covariance matrix of the estimates to {F}.".format(F=ofh))
+    logger.info("Printing covariance matrix of the estimates to {ofh}.")
     np.savetxt(ofh, ldscore_reg.coef_cov)
 
 
 def _print_delete_values(ldscore_reg, ofh, log):
     """Prints block jackknife delete-k values"""
-    log.log("Printing block jackknife delete values to {F}.".format(F=ofh))
+    logger.info("Printing block jackknife delete values to {ofh}.")
     np.savetxt(ofh, ldscore_reg.tot_delete_values)
 
 
 def _print_part_delete_values(ldscore_reg, ofh, log):
     """Prints partitioned block jackknife delete-k values"""
-    log.log("Printing partitioned block jackknife delete values to {F}.".format(F=ofh))
+    logger.info("Printing partitioned block jackknife delete values to {ofh}.")
     np.savetxt(ofh, ldscore_reg.part_delete_values)
 
 
 def _merge_and_log(ld, sumstats, noun, log):
     """Wrap smart merge with log messages about # of SNPs."""
     sumstats = smart_merge(ld, sumstats)
-    msg = "After merging with {F}, {N} SNPs remain."
+    msg = f"After merging with {noun}, {len(sumstats)} SNPs remain."
     if len(sumstats) == 0:
+        logger.critical(msg)
         raise ValueError(msg.format(N=len(sumstats), F=noun))
     else:
-        log.log(msg.format(N=len(sumstats), F=noun))
+        logger.info(msg)
 
     return sumstats
 
 
-def _read_ld_sumstats(args, log, fh, alleles=False, dropna=True):
-    sumstats = _read_sumstats(args, log, fh, alleles=alleles, dropna=dropna)
-    ref_ld = _read_ref_ld(args, log)
+def _read_ld_sumstats(args, fh, alleles=False, dropna=True):
+    sumstats = _read_sumstats(args, fh, alleles=alleles, dropna=dropna)
+    ref_ld = _read_ref_ld(args)
     n_annot = len(ref_ld.columns) - 1
-    M_annot = _read_M(args, log, n_annot)
-    M_annot, ref_ld, novar_cols = _check_variance(log, M_annot, ref_ld)
-    w_ld = _read_w_ld(args, log)
-    sumstats = _merge_and_log(ref_ld, sumstats, "reference panel LD", log)
-    sumstats = _merge_and_log(sumstats, w_ld, "regression SNP LD", log)
+    M_annot = _read_M(args, n_annot)
+    M_annot, ref_ld, novar_cols = _check_variance(M_annot, ref_ld)
+    w_ld = _read_w_ld(args)
+    sumstats = _merge_and_log(ref_ld, sumstats, "reference panel LD")
+    sumstats = _merge_and_log(sumstats, w_ld, "regression SNP LD")
     w_ld_cname = sumstats.columns[-1]
     ref_ld_cnames = ref_ld.columns[1 : len(ref_ld.columns)]
     return M_annot, w_ld_cname, ref_ld_cnames, sumstats, novar_cols
@@ -310,11 +308,11 @@ def cell_type_specific(args, log):
         args.intercept_h2 = 1
 
     M_annot_all_regr, w_ld_cname, ref_ld_cnames_all_regr, sumstats, novar_cols = (
-        _read_ld_sumstats(args, log, args.h2_cts)
+        _read_ld_sumstats(args, args.h2_cts)
     )
     M_tot = np.sum(M_annot_all_regr)
-    _check_ld_condnum(args, log, ref_ld_cnames_all_regr)
-    _warn_length(log, sumstats)
+    _check_ld_condnum(args, ref_ld_cnames_all_regr)
+    _warn_length(sumstats)
     n_snp = len(sumstats)
     n_blocks = min(n_snp, args.n_blocks)
     if args.chisq_max is None:
@@ -324,10 +322,8 @@ def cell_type_specific(args, log):
 
     ii = np.ravel(sumstats.Z**2 < chisq_max)
     sumstats = sumstats.iloc[ii, :]
-    log.log(
-        "Removed {M} SNPs with chi^2 > {C} ({N} SNPs remain)".format(
-            C=chisq_max, N=np.sum(ii), M=n_snp - np.sum(ii)
-        )
+    logger.info(
+        f"Removed {n_snp - np.sum(ii)} SNPs with chi^2 > {chisq_max} ({np.sum(ii)} SNPs remain)"
     )
     n_snp = np.sum(ii)  # lambdas are late-binding, so this works
     ref_ld_all_regr = np.array(sumstats[ref_ld_cnames_all_regr]).reshape(
@@ -345,9 +341,9 @@ def cell_type_specific(args, log):
     results_data = []
     for name, ct_ld_chr in [x.split() for x in open(args.ref_ld_chr_cts).readlines()]:
         ref_ld_cts_allsnps = _read_chr_split_files(
-            ct_ld_chr, None, log, "cts reference panel LD Score", ps.ldscore_fromlist
+            ct_ld_chr, None, "cts reference panel LD Score", ps.ldscore_fromlist
         )
-        log.log("Performing regression.")
+        logger.info("Performing regression.")
         ref_ld_cts = np.array(
             pd.merge(keep_snps, ref_ld_cts_allsnps, on="SNP", how="left").iloc[:, 1:]
         )
@@ -382,7 +378,7 @@ def cell_type_specific(args, log):
     df_results = pd.DataFrame(data=results_data, columns=results_columns)
     df_results.sort_values(by="Coefficient_P_value", inplace=True)
     df_results.to_csv(args.out + ".cell_type_results.txt", sep="\t", index=False)
-    log.log("Results printed to " + args.out + ".cell_type_results.txt")
+    logger.info(f"Results printed to {args.out}.cell_type_results.tx")
 
 def reshape_array(matrix, n_snps: int) -> np.array:
     """method to reshape the provided matrix"""
@@ -403,11 +399,11 @@ def estimate_h2(args, log) -> reg.Hsq:
     if args.no_intercept:
         args.intercept_h2 = 1
     M_annot, w_ld_cname, ref_ld_cnames, sumstats, novar_cols = _read_ld_sumstats(
-        args, log, args.h2
+        args, args.h2
     )
     ref_ld = np.array(sumstats[ref_ld_cnames])
-    _check_ld_condnum(args, log, ref_ld_cnames)
-    _warn_length(log, sumstats)
+    _check_ld_condnum(args, ref_ld_cnames)
+    _warn_length(sumstats)
     n_snp = len(sumstats)
     n_blocks = min(n_snp, args.n_blocks)
     n_annot = len(ref_ld_cnames)
@@ -426,17 +422,15 @@ def estimate_h2(args, log) -> reg.Hsq:
     if chisq_max is not None:
         ii = np.ravel(chisq < chisq_max)
         sumstats = sumstats.iloc[ii, :]
-        log.log(
-            "Removed {M} SNPs with chi^2 > {C} ({N} SNPs remain)".format(
-                C=chisq_max, N=np.sum(ii), M=n_snp - np.sum(ii)
-            )
+        logger.info(
+            f"Removed {n_snp - np.sum(ii)} SNPs with chi^2 > {chisq_max} ({np.sum(ii)} SNPs remain)"
         )
         n_snp = np.sum(ii)  # lambdas are late-binding, so this works
         ref_ld = np.array(sumstats[ref_ld_cnames])
         chisq = chisq[ii].reshape((n_snp, 1))
 
     if args.two_step is not None:
-        log.log("Using two-step estimator with cutoff at {M}.".format(M=args.two_step))
+        logger.info(f"Using two-step estimator with cutoff at {args.two_step}.")
 
     hsqhat = reg.Hsq(
         chisq,
@@ -472,7 +466,7 @@ def estimate_h2(args, log) -> reg.Hsq:
             ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients
         )
         df_results.to_csv(args.out + ".results", sep="\t", index=False)
-        log.log("Results printed to " + args.out + ".results")
+        logger.info(f"Results printed to {args.out}.results")
 
     return hsqhat
 
@@ -506,17 +500,17 @@ def estimate_rg(args, log):
     p1 = rg_paths[0]
     out_prefix = Path(args.out)
     M_annot, w_ld_cname, ref_ld_cnames, sumstats, _ = _read_ld_sumstats(
-        args, log, p1, alleles=True, dropna=True
+        args, p1, alleles=True, dropna=True
     )
     RG = []
     n_annot = M_annot.shape[1]
     if n_annot == 1 and args.two_step is None and args.intercept_h2 is None:
         args.two_step = 30
     if args.two_step is not None:
-        log.log("Using two-step estimator with cutoff at {M}.".format(M=args.two_step))
+        logger.info(f"Using two-step estimator with cutoff at {args.two_step}.")
 
     for i, p2 in enumerate(rg_paths[1:n_pheno]):
-        log.log("Computing rg for phenotype {I}/{N}".format(I=i + 2, N=len(rg_paths)))
+        logger.info(f"Computing rg for phenotype {i + 2}/{len(rg_paths)}")
         try:
             loop = _read_other_sumstats(args, log, p2, sumstats, ref_ld_cnames)
             rghat = _rg(loop, args, log, M_annot, ref_ld_cnames, w_ld_cname, i)
@@ -528,14 +522,14 @@ def estimate_rg(args, log):
                 _print_rg_delete_values(rghat, f"{out_prefix}.delete_vals", log)
 
         except Exception:  # keep going if phenotype 50/100 causes an error
-            msg = "ERROR computing rg for phenotype {I}/{N}, from file {F}."
-            log.log(msg.format(I=i + 2, N=len(rg_paths), F=rg_paths[i + 1]))
+            
+            logger.critical(f"ERROR computing rg for phenotype {i + 2}/{len(rg_paths)}, from file {rg_paths[i + 1]}.")
             ex_type, ex, tb = sys.exc_info()
-            log.log(traceback.format_exc(ex) + "\n")
+            logger.critical(traceback.format_exc(ex) + "\n")
             if len(RG) <= i:  # if exception raised before appending to RG
                 RG.append(None)
 
-    log.log(
+    logger.info(
         "\nSummary of Genetic Correlation Results\n"
         + _get_rg_table(rg_paths, RG, out_prefix, args)
     )
@@ -543,13 +537,13 @@ def estimate_rg(args, log):
 
 
 def _read_other_sumstats(args, log, p2, sumstats, ref_ld_cnames):
-    loop = _read_sumstats(args, log, p2, alleles=True, dropna=False)
+    loop = _read_sumstats(args, p2, alleles=True, dropna=False)
     loop = _merge_sumstats_sumstats(args, sumstats, loop, log)
     loop = loop.dropna(how="any")
     alleles = loop.A1 + loop.A2 + loop.A1x + loop.A2x
     if not args.no_check_alleles:
         loop = _select_and_log(
-            loop, _filter_alleles(alleles), log, "{N} SNPs with valid alleles."
+            loop, _filter_alleles(alleles)
         )
         loop["Z2"] = _align_alleles(loop.Z2, alleles)
 
@@ -611,15 +605,15 @@ def _print_gencor(args, log, rghat, ref_ld_cnames, i, rg_paths, print_hsq1):
         args.samp_prev = [None, None]
         args.pop_prev = [None, None]
     if print_hsq1:
-        log.log(l("\nHeritability of phenotype 1\n"))
-        log.log(rghat.hsq1.summary(log, ref_ld_colnames=ref_ld_cnames, P=P[0], K=K[0]))
+        logger.info(l("\nHeritability of phenotype 1\n"))
+        logger.info(rghat.hsq1.summary(log, ref_ld_colnames=ref_ld_cnames, P=P[0], K=K[0]))
 
-    log.log(l("\nHeritability of phenotype {I}/{N}\n".format(I=i + 2, N=len(rg_paths))))
-    log.log(rghat.hsq2.summary(log, ref_ld_colnames=ref_ld_cnames, P=P[1], K=K[1]))
-    log.log(l("\nGenetic Covariance\n"))
-    log.log(rghat.gencov.summary(ref_ld_colnames=ref_ld_cnames, P=P, K=K))
-    log.log(l("\nGenetic Correlation\n"))
-    log.log(rghat.summary() + "\n")
+    logger.info(l("\nHeritability of phenotype {I}/{N}\n".format(I=i + 2, N=len(rg_paths))))
+    logger.info(rghat.hsq2.summary(log, ref_ld_colnames=ref_ld_cnames, P=P[1], K=K[1]))
+    logger.info(l("\nGenetic Covariance\n"))
+    logger.info(rghat.gencov.summary(ref_ld_colnames=ref_ld_cnames, P=P, K=K))
+    logger.info(l("\nGenetic Correlation\n"))
+    logger.info(rghat.summary() + "\n")
 
 
 def _merge_sumstats_sumstats(args, sumstats1, sumstats2, log):
