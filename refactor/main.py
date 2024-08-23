@@ -1,4 +1,5 @@
 from datetime import datetime
+import traceback
 from parsers  import generate_parser
 from logger import LDSCLogger
 
@@ -28,14 +29,16 @@ def main() -> None:
     logger.print_header(args, main_parser)
 
     logger.info(f"Analysis started at {start_time}")
+    try:
+        # Now we are going to call the appropriate function for the selected subcommand
+        args.func(args)
 
-    # Now we are going to call the appropriate function for the selected subcommand
-    args.func(args)
+        end_time = datetime.now()
 
-    end_time = datetime.now()
-
-    logger.info(f"Analysis finished at {end_time}")
-
+        logger.info(f"Analysis finished at {end_time}")
+    except Exception as e:
+        logger.critical("Encountered an error during the analysis")
+        logger.critical(traceback.format_exc())
     # print(main_parser)
 
     
