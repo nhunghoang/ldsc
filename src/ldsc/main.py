@@ -1,7 +1,7 @@
 from datetime import datetime
 import traceback
-from parsers import generate_parser
-from logger import LDSCLogger
+from ldsc.parsers import generate_parser
+from ldsc.logger import LDSCLogger
 
 
 def main() -> None:

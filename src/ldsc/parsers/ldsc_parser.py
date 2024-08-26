@@ -1,9 +1,9 @@
 import argparse
 from pathlib import Path
 from .parser_interface import ParserConfig
-import ldscore as ld
-from ldscore import sumstats
-from callbacks import ChecknBlocks
+import ldsc.ldscore as ld
+from ldsc.ldscore import sumstats
+from ldsc.callbacks import ChecknBlocks
 
 from rich_argparse import RichHelpFormatter
 

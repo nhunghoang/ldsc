@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 from .parser_interface import ParserConfig
-from munge_sumstats import munge_sumstats
+from ldsc.munge_sumstats import munge_sumstats
 
 
 class MungeSumstatsconfig(ParserConfig):

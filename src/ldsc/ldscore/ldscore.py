@@ -3,9 +3,9 @@ import logging
 import numpy as np
 import bitarray as ba
 import pandas as pd
-import ldscore.parse as ps
-import ldscore.sumstats as sumstats
-import ldscore.regressions as reg
+import ldsc.ldscore.parse as ps
+import ldsc.ldscore.sumstats as sumstats
+import ldsc.ldscore.regressions as reg
 from ldsc.logger import LDSCLogger
 from .ldsc_check_args import check_args
 
@@ -135,17 +135,17 @@ class __GenotypeArrayInMemory__(object):
 
     def ldScoreVarBlocks(self, block_left, c, annot=None):
         """Computes an unbiased estimate of L2(j) for j=1,..,M."""
-        func = lambda x: self.__l2_unbiased__(x, self.n)
+        # func = lambda x: self.__l2_unbiased__(x)
         snp_getter = self.nextSNPs
-        return self.__corSumVarBlocks__(block_left, c, func, snp_getter, annot)
+        return self.__corSumVarBlocks__(block_left, c, self.__l2_unbiased__, snp_getter, annot)
 
     def ldScoreBlockJackknife(self, block_left, c, annot=None, jN=10):
-        func = lambda x: np.square(x)
+        # func = lambda x: np.square(x)
         snp_getter = self.nextSNPs
-        return self.__corSumBlockJackknife__(block_left, c, func, snp_getter, annot, jN)
+        return self.__corSumBlockJackknife__(block_left, c, np.square, snp_getter, annot, jN)
 
-    def __l2_unbiased__(self, x, n):
-        denom = n - 2 if n > 2 else n  # allow n<2 for testing purposes
+    def __l2_unbiased__(self, x):
+        denom = self.n - 2 if self.n > 2 else self.n  # allow n<2 for testing purposes
         sq = np.square(x)
         return sq - (1 - sq) / denom
 

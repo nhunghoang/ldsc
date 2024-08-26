@@ -10,6 +10,7 @@ Last column = intercept.
 
 import logging
 from pathlib import Path
+import sys
 from typing import Any, Union
 import numpy as np
 import pandas as pd
@@ -977,9 +978,14 @@ class RG(object):
             rg_ratio = np.array(gencov.tot / np.sqrt(hsq1.tot * hsq2.tot)).reshape(
                 (1, 1)
             )
-            denom_delete_values = np.sqrt(
-                np.multiply(hsq1.tot_delete_values, hsq2.tot_delete_values)
-            )
+            try:
+                denom_delete_values = np.sqrt(
+                    np.multiply(hsq1.tot_delete_values, hsq2.tot_delete_values)
+                )
+            except FloatingPointError as e:
+                logger.critical("FATAL: invalid value encountered in sqrt. This error occured because one of the jacknife estimates of heritability for at least 1 phenotype is negative. This error indicates that the heritability is not statistically distinguishable from 0 and the genetic correlation cannot be reliably estimated.")
+                logger.critical("Ending analysis")
+                sys.exit(1)
             rg = jk.RatioJackknife(
                 rg_ratio, gencov.tot_delete_values, denom_delete_values
             )

@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 from .parser_interface import ParserConfig
-from annotate import make_annot_files
+from ldsc.annotate import make_annot_files
 
 
 class MakeAnnotconfig(ParserConfig):
