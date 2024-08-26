@@ -1,0 +1,1 @@
+from .ldscore import ldscore
