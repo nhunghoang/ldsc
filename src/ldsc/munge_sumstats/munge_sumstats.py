@@ -157,19 +157,6 @@ def get_cname_map(flag, default, ignore):
     return cname_map
 
 
-def get_compression(file_handle):
-    """
-    Load file and determine the compression type
-    """
-    if file_handle.suffix == ".gz":
-        compression = "gzip"
-    elif file_handle.suffix == "b.z2":
-        compression = "bz2"
-    else:
-        compression = None
-
-    return compression
-
 
 def clean_header(header):
     """
@@ -247,8 +234,8 @@ def parse_dat(dat_gen, convert_colname, merge_alleles, args):
         f"Reading sumstats from {args.sumstats} into memory {args.chunksize} SNPs at a time."
     )
     drops = {"NA": 0, "P": 0, "INFO": 0, "FRQ": 0, "A": 0, "SNP": 0, "MERGE": 0}
-    for block_num, dat in enumerate(dat_gen):
-        sys.stdout.write(".")
+    for chunk_number, dat in enumerate(dat_gen, start=1):
+        logger.info(f"reading in chunk #{chunk_number}")
         tot_snps += len(dat)
         old = len(dat)
         dat = dat.dropna(
@@ -606,7 +593,7 @@ def munge_sumstats(args):
                 F=args.merge_alleles
             )
         )
-        # compression = get_compression(args.merge_alleles)
+
         merge_alleles = pd.read_csv(
             args.merge_alleles,
             header=0,
@@ -628,7 +615,7 @@ def munge_sumstats(args):
     else:
         merge_alleles = None
 
-    # compression = get_compression(args.sumstats)
+
 
     # figure out which columns are going to involve sign information, so we can ensure
     # they're read as floats

@@ -32,6 +32,7 @@ dev = [
     "black>=24.8.0",
     "isort>=5.13.2",
     "nox>=2024.4.15",
+    "scalene>=1.5.19",
 ]
 [build-system]
 requires = ["pdm-backend"]
