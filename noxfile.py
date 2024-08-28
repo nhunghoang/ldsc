@@ -9,7 +9,11 @@ VENV_DIR = pathlib.Path('./.venv').resolve()
 @nox.session(tags=["tests"], python=["3.8", "3.9", "3.10", "3.11", "3.12"])
 def run_test(session):
     session.run_always("pdm", "install", "--without", "dev", external=True)
+    # we need to make sure that the simulated data exists
+    session.run_always("pdm", "simulate", external=True)
 
     python = os.fsdecode(VENV_DIR.joinpath("bin/python"))
     
     session.run(python, "-m", "unittest", "discover", "-s", "./tests/", "-p", "*.py")
+
+    session.run_always("pdm", "clean", external=True)

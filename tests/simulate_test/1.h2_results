@@ -1,2 +1,0 @@
-h2	h2_stderr	lambda_gc	mean_chi2	intercept_constrained	intercept\intercept_stderr	scale	categories	snp_proportion	h2g_proportion	enrichment	coefficients	coefficients_stderr	ratio	ratio_stderr
-0.3283 0.5949	0.0466 0.0582	8.307619256979555	10.208669028000001	True	1.0	N/A	Observed	LD1_0 LD2_0	0.4939 0.5061	0.3557 0.6443	0.7201 1.2732	4.1396e-06 7.3195e-06	5.8739e-07 7.1650e-07	N/A	N/A
