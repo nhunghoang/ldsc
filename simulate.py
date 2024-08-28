@@ -3,6 +3,7 @@ Generates .sumstats and .l2.ldscore/.l2.M files used for simulation testing.
 
 """
 
+from pathlib import Path
 import numpy as np
 import pandas as pd
 
@@ -11,7 +12,6 @@ N_SIMS = 1000
 N_SNP = 1000
 h21 = 0.3
 h22 = 0.6
-
 
 def print_ld(x, fh, M):
 
