@@ -1,3 +1,4 @@
+28.8.24 v3.0.0: Finished fixing the unit test and fixed merged conflicts with the main branch. Fixed the docker image to use the pdm build system.
 26.8.24 v2.2.0: refactor dockerfile to a multi-stage build that uses this pdm project structure to install the ldsc package with the ldsc entrypoint just like it installs for the pip install. Still need to fix unit tests before this gets bumped to v3.0.0
 26.8.24 v2.2.0: refactored the package structure to a pdm project for better dependency management.
 23-8-24 v2.2.0: refactored the parsers so that they are originate from the main.py file and then are configured in submodules

@@ -20,6 +20,11 @@ dependencies = [
 requires-python = ">=3.9"
 readme = "README.md"
 
+[project.urls]
+Homepage = "https://github.com/belowlab/ldsc"
+Repository = "https://github.com/belowlab/ldsc"
+Changelog = "https://github.com/belowlab/ldsc/blob/master/CHANGELOG"
+
 [[project.authors]]
 name = "Brendan Bulik-Sullivan, Hilary Finucane, James Baker"
 email = "james.baker@vanderbilt.edu"
