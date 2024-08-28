@@ -19,15 +19,25 @@ dependencies = [
 ]
 requires-python = ">=3.9"
 readme = "README.md"
+authors = [
+    {name = "Brendan Bulik-Sullivan"},
+    {name = "Hilary Finucane"},
+    {name = "James Baker", email = "james.baker@vanderbilt.edu"},
+]
+keywords = ["python", "genetics", "genetic correlation", "heritability"]
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 
 [project.urls]
 Homepage = "https://github.com/belowlab/ldsc"
 Repository = "https://github.com/belowlab/ldsc"
 Changelog = "https://github.com/belowlab/ldsc/blob/master/CHANGELOG"
-
-[[project.authors]]
-name = "Brendan Bulik-Sullivan, Hilary Finucane, James Baker"
-email = "james.baker@vanderbilt.edu"
 
 [project.license]
 text = "GPL-3.0-or-later"
