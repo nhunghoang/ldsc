@@ -94,9 +94,15 @@ test_data/
 
 # vscode
 .vscode/
-
 # Virtualenvs
 .venv
 
 # Nox version test
 .nox
+
+# venv
+ldsc_venv/
+
+# tests
+.nox
+.venv
