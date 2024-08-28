@@ -169,7 +169,7 @@ def _read_w_ld(args):
         args.w_ld_chr and "," in args.w_ld_chr.name
     ):
         raise ValueError("--w-ld must point to a single fileset (no commas allowed).")
-    print(f"w_ld: {args.w_ld}")
+
     w_ld = _read_chr_split_files(
         args.w_ld_chr, args.w_ld, "regression weight LD Score", ps.ldscore_fromlist
     )
@@ -201,7 +201,7 @@ def _read_chr_split_files(chr_arg, not_chr_arg, noun, parsefunc, **kwargs):
     return out
 
 
-def _read_sumstats(args, fh: Path, alleles=False, dropna=False):
+def _read_sumstats(args: list[any], fh: Path, alleles=False, dropna=False):
     """Parse summary statistics."""
     logger.info(f"Reading summary statistics from {fh} ...")
     sumstats = ps.sumstats(fh, alleles=alleles, dropna=dropna)
@@ -220,15 +220,15 @@ def _check_ld_condnum(args, ref_ld):
         cond_num = int(np.linalg.cond(ref_ld))
         if cond_num > 100000:
             if args.invert_anyway:
-                logger.warn(
-                    "WARNING: LD Score matrix condition number is {cond_num}. Inverting anyway because the --invert-anyway flag is set."
+                logger.warning(
+                    f"WARNING: LD Score matrix condition number is {cond_num}. Inverting anyway because the --invert-anyway flag is set."
                 )
             else:
-                logger.warn(
-                    "WARNING: LD Score matrix condition number is {cond_num}. Remove collinear LD Scores. "
+                logger.warning(
+                    f"WARNING: LD Score matrix condition number is {cond_num}. Remove collinear LD Scores. "
                 )
                 raise ValueError(
-                    "WARNING: LD Score matrix condition number is {cond_num}. Remove collinear LD Scores. "
+                    f"WARNING: LD Score matrix condition number is {cond_num}. Remove collinear LD Scores. "
                 )
 
 
@@ -250,7 +250,7 @@ def _check_variance(M_annot, ref_ld):
 
 def _warn_length(sumstats):
     if len(sumstats) < 200000:
-        logger.warn(
+        logger.warning(
             "WARNING: number of SNPs less than 200k; this is almost always bad."
         )
 
@@ -286,7 +286,7 @@ def _merge_and_log(ld, sumstats, noun):
     return sumstats
 
 
-def _read_ld_sumstats(args, fh, alleles=False, dropna=True):
+def _read_ld_sumstats(args, fh: Path, alleles=False, dropna=True):
     sumstats = _read_sumstats(args, fh, alleles=alleles, dropna=dropna)
     ref_ld = _read_ref_ld(args)
     n_annot = len(ref_ld.columns) - 1
@@ -393,14 +393,14 @@ def estimate_h2(args) -> reg.Hsq:
 
     check_args(args)
     args = copy.deepcopy(args)
-    if args.samp_prev is not None and args.pop_prev is not None:
-        args.samp_prev, args.pop_prev = list(
-            map(float, [args.samp_prev, args.pop_prev])
-        )
-    if args.intercept_h2 is not None:
-        args.intercept_h2 = float(args.intercept_h2)
-    if args.no_intercept:
-        args.intercept_h2 = 1
+    # if args.samp_prev is not None and args.pop_prev is not None:
+    #     args.samp_prev, args.pop_prev = list(
+    #         map(float, [args.samp_prev, args.pop_prev])
+    #     )
+    # if args.intercept_h2 is not None:
+    #     args.intercept_h2 = float(args.intercept_h2)
+    # if args.no_intercept:
+    #     args.intercept_h2 = 1
     M_annot, w_ld_cname, ref_ld_cnames, sumstats, novar_cols = _read_ld_sumstats(
         args, args.h2
     )

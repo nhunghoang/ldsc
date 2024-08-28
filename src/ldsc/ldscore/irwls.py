@@ -5,8 +5,12 @@ Iterativey re-weighted least squares.
 
 """
 
+import logging
 import numpy as np
 from . import jackknife as jk
+from ldsc.logger import LDSCLogger
+
+logger: logging.Logger = LDSCLogger.get_logger(__name__)
 
 
 class IRWLS(object):
@@ -117,7 +121,8 @@ class IRWLS(object):
         for i in range(2):  # update this later
             new_w = np.sqrt(update_func(cls.wls(x, y, w)))
             if new_w.shape != w.shape:
-                print("IRWLS update:", new_w.shape, w.shape)
+                logger.critical("IRWLS update:", new_w.shape, w.shape)
+                logger.critical("new weights must have same shape")
                 raise ValueError("New weights must have same shape.")
             else:
                 w = new_w

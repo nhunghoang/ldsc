@@ -54,12 +54,12 @@ def which_compression(fh):
         suffix = ""
         compression = None
     else:
-        raise IOError("Could not open {F}[./gz/bz2]".format(F=fh))
+        raise IOError(f"Could not open {fh}[./gz/bz2]")
 
     return suffix, compression
 
 
-def get_compression(fh: Path):
+def get_compression(fh: Path) -> str:
     """Which sort of compression should we use with read_csv?"""
     if fh.suffix == ".gz":
         compression = "gzip"
@@ -68,7 +68,6 @@ def get_compression(fh: Path):
     else:
         compression = None
 
-    return compression
     return compression
 
 
@@ -106,7 +105,7 @@ def ldscore_fromlist(flist, num=None):
 
     ldscore_array = []
     for i, fh in enumerate(flist):
-        print(f"fh: {fh}")
+
         y = ldscore(fh, num)
         if i > 0:
             if not series_eq(y.SNP, ldscore_array[0].SNP):
@@ -172,9 +171,16 @@ def ldscore(fh, num=None):
     return x
 
 
+def _parse_file(fh: Path) -> list[float]:
+    """parse the file and convert values to floats"""
+
+    with open(fh, "r", encoding="utf-8") as dot_m_files:
+        return [float(z) for z in dot_m_files.readline().split()]
+
+
 def M(fh, num=None, N=2, common=False):
     """Parses .l{N}.M files, split across num chromosomes. See docs/file_formats_ld.txt."""
-    parsefunc = lambda y: [float(z) for z in open(y, "r").readline().split()]
+
     suffix = ".l" + str(N) + ".M"
     if common:
         suffix += "_5_50"
@@ -182,13 +188,13 @@ def M(fh, num=None, N=2, common=False):
     if num is not None:
         x = np.sum(
             [
-                parsefunc(sub_chr(fh, f"{i}{suffix}"))
+                _parse_file(sub_chr(fh, f"{i}{suffix}"))
                 for i in get_present_chrs(fh, num + 1)
             ],
             axis=0,
         )
     else:
-        x = parsefunc(sub_chr(fh, f"{suffix}"))
+        x = _parse_file(sub_chr(fh, f"{suffix}"))
 
     return np.array(x).reshape((1, len(x)))
 
@@ -251,20 +257,24 @@ def annot(fh_list, num=None, frqfile=None):
         x = sum(y)
     else:  # just one file
         for i, fh in enumerate(fh_list):
-            annot_s, annot_comp_single = which_compression(fh + annot_suffix[i])
+            annot_s, annot_comp_single = which_compression(
+                fh.parent / f"{fh.name}{annot_suffix[i]}"
+            )
             annot_suffix[i] += annot_s
             annot_compression.append(annot_comp_single)
 
         if frqfile is not None:
             frq_suffix = ".frq"
-            frq_s, frq_compression = which_compression(frqfile + frq_suffix)
+            frq_s, frq_compression = which_compression(
+                frqfile.parent / f"{frqfile.name}{frq_suffix}"
+            )
             frq_suffix += frq_s
 
             df_annot_list = [
                 annot_parser(
-                    fh + annot_suffix[i],
+                    fh.parent / f"{fh.name}{annot_suffix[i]}",
                     annot_compression[i],
-                    frqfile + frq_suffix,
+                    frqfile.parent / f"{frqfile.name}{frq_suffix}",
                     frq_compression,
                 )
                 for i, fh in enumerate(fh_list)
@@ -272,11 +282,13 @@ def annot(fh_list, num=None, frqfile=None):
 
         else:
             df_annot_list = [
-                annot_parser(fh + annot_suffix[i], annot_compression[i])
+                annot_parser(
+                    fh.parent / f"{fh.name}{annot_suffix[i]}", annot_compression[i]
+                )
                 for i, fh in enumerate(fh_list)
             ]
 
-        annot_matrix_list = [np.matrix(y) for y in df_annot_list]
+        annot_matrix_list = [np.array(y) for y in df_annot_list]
         annot_matrix = np.hstack(annot_matrix_list)
         x = np.dot(annot_matrix.T, annot_matrix)
         M_tot = len(df_annot_list[0])

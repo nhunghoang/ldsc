@@ -25,7 +25,7 @@ logger: logging.Logger = LDSCLogger.get_logger(__name__)
 
 np.seterr(divide="raise", invalid="raise")
 
-s = lambda x: remove_brackets(str(np.matrix(x)))
+s = lambda x: remove_brackets(str(np.array(x)))
 
 
 def update_separators(s, ii):
@@ -983,7 +983,9 @@ class RG(object):
                     np.multiply(hsq1.tot_delete_values, hsq2.tot_delete_values)
                 )
             except FloatingPointError as e:
-                logger.critical("FATAL: invalid value encountered in sqrt. This error occured because one of the jacknife estimates of heritability for at least 1 phenotype is negative. This error indicates that the heritability is not statistically distinguishable from 0 and the genetic correlation cannot be reliably estimated.")
+                logger.critical(
+                    "FATAL: invalid value encountered in sqrt. This error occured because one of the jacknife estimates of heritability for at least 1 phenotype is negative. This error indicates that the heritability is not statistically distinguishable from 0 and the genetic correlation cannot be reliably estimated."
+                )
                 logger.critical("Ending analysis")
                 sys.exit(1)
             rg = jk.RatioJackknife(

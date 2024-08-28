@@ -137,12 +137,16 @@ class __GenotypeArrayInMemory__(object):
         """Computes an unbiased estimate of L2(j) for j=1,..,M."""
         # func = lambda x: self.__l2_unbiased__(x)
         snp_getter = self.nextSNPs
-        return self.__corSumVarBlocks__(block_left, c, self.__l2_unbiased__, snp_getter, annot)
+        return self.__corSumVarBlocks__(
+            block_left, c, self.__l2_unbiased__, snp_getter, annot
+        )
 
     def ldScoreBlockJackknife(self, block_left, c, annot=None, jN=10):
         # func = lambda x: np.square(x)
         snp_getter = self.nextSNPs
-        return self.__corSumBlockJackknife__(block_left, c, np.square, snp_getter, annot, jN)
+        return self.__corSumBlockJackknife__(
+            block_left, c, np.square, snp_getter, annot, jN
+        )
 
     def __l2_unbiased__(self, x):
         denom = self.n - 2 if self.n > 2 else self.n  # allow n<2 for testing purposes
@@ -285,26 +289,26 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
         if fname.suffix != ".bed":
             raise ValueError(".bed filename must end in .bed")
 
-        fh = open(fname, "rb")
-        magicNumber = ba.bitarray(endian="little")
-        magicNumber.fromfile(fh, 2)
-        bedMode = ba.bitarray(endian="little")
-        bedMode.fromfile(fh, 1)
-        e = (4 - n % 4) if n % 4 != 0 else 0
-        nru = n + e
-        self.nru = nru
-        # check magic number
-        if magicNumber != ba.bitarray("0011011011011000"):
-            raise IOError("Magic number from Plink .bed file not recognized")
+        with open(fname, "rb") as fh:
+            magicNumber = ba.bitarray(endian="little")
+            magicNumber.fromfile(fh, 2)
+            bedMode = ba.bitarray(endian="little")
+            bedMode.fromfile(fh, 1)
+            e = (4 - n % 4) if n % 4 != 0 else 0
+            nru = n + e
+            self.nru = nru
+            # check magic number
+            if magicNumber != ba.bitarray("0011011011011000"):
+                raise IOError("Magic number from Plink .bed file not recognized")
 
-        if bedMode != ba.bitarray("10000000"):
-            raise IOError("Plink .bed file must be in default SNP-major mode")
+            if bedMode != ba.bitarray("10000000"):
+                raise IOError("Plink .bed file must be in default SNP-major mode")
 
-        # check file length
-        self.geno = ba.bitarray(endian="little")
-        self.geno.fromfile(fh)
-        self.__test_length__(self.geno, self.m, self.nru)
-        return (self.nru, self.geno)
+            # check file length
+            self.geno = ba.bitarray(endian="little")
+            self.geno.fromfile(fh)
+            self.__test_length__(self.geno, self.m, self.nru)
+            return (self.nru, self.geno)
 
     def __test_length__(self, geno, m, nru):
         exp_len = 2 * m * nru

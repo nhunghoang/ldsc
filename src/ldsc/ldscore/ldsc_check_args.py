@@ -76,3 +76,15 @@ def check_args(args: list[Any]) -> None:
             raise argparse.ArgumentError(
                 "Must set either --frqfile and --ref-ld or --frqfile-chr and --ref-ld-chr"
             )
+
+    if (
+        function_args.get("samp_prev") is not None
+        and function_args.get("pop_prev") is not None
+    ):
+        args.samp_prev, args.pop_prev = list(
+            map(float, [args.samp_prev, args.pop_prev])
+        )
+    if function_args.get("intercept_h2") is not None:
+        args.intercept_h2 = float(args.intercept_h2)
+    if function_args.get("no_intercept"):
+        args.intercept_h2 = 1

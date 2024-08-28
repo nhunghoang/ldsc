@@ -1,5 +1,5 @@
 from pathlib import Path
-import ldscore.ldscore as ld
+import ldscore as ld
 import unittest
 import bitarray as ba
 import numpy as np
@@ -33,28 +33,26 @@ class test_bed(unittest.TestCase):
     def setUp(self):
         self.M = 8
         self.N = 5
-        self.bim = ps.PlinkBIMFile(Path("test/plink_test/plink.bim"))
+        self.bim = ps.PlinkBIMFile(Path("tests/plink_test/plink.bim"))
 
     def test_bed(self):
-        bed = ld.PlinkBEDFile(Path("test/plink_test/plink.bed"), self.N, self.bim)
-        # remove three monomorphic SNPs
-        print(bed.geno)
-        print(bed.m)
+        bed = ld.PlinkBEDFile(Path("tests/plink_test/plink.bed"), self.N, self.bim)
+
         assert bed.m == 4
         # no individuals removed
-        print(bed.n)
+
         assert self.N == bed.n
         # 5 indivs * 4 polymorphic SNPs
-        print(len(bed.geno))
+
         assert len(bed.geno) == 64
-        print(bed.freq)
+
         correct = np.array([0.59999999999999998, 0.59999999999999998, 0.625, 0.625])
         assert np.all(bed.freq == correct)
 
     def test_filter_snps(self):
         keep_snps = [1, 4]
         bed = ld.PlinkBEDFile(
-            Path("test/plink_test/plink.bed"), self.N, self.bim, keep_snps=keep_snps
+            Path("tests/plink_test/plink.bed"), self.N, self.bim, keep_snps=keep_snps
         )
         assert bed.m == 1
         assert bed.n == 5
@@ -64,7 +62,10 @@ class test_bed(unittest.TestCase):
     def test_filter_indivs(self):
         keep_indivs = [0, 1]
         bed = ld.PlinkBEDFile(
-            Path("test/plink_test/plink.bed"), self.N, self.bim, keep_indivs=keep_indivs
+            Path("tests/plink_test/plink.bed"),
+            self.N,
+            self.bim,
+            keep_indivs=keep_indivs,
         )
         assert bed.m == 2
         assert bed.n == 2
@@ -76,7 +77,7 @@ class test_bed(unittest.TestCase):
         keep_indivs = [0, 1]
         keep_snps = [1, 5]
         bed = ld.PlinkBEDFile(
-            Path("test/plink_test/plink.bed"),
+            Path("tests/plink_test/plink.bed"),
             self.N,
             self.bim,
             keep_snps=keep_snps,
@@ -84,26 +85,26 @@ class test_bed(unittest.TestCase):
         )
         assert bed.m == 1
         assert bed.n == 2
-        print(bed.geno)
+
         assert bed.geno[0:4] == ba.bitarray("0001")
 
     @nose.tools.raises(ValueError)
     def test_bad_filename(self):
-        bed = ld.PlinkBEDFile(Path("test/plink_test/plink.bim"), 9, self.bim)
+        bed = ld.PlinkBEDFile(Path("tests/plink_test/plink.bim"), 9, self.bim)
 
     @nose.tools.raises(ValueError)
     def test_nextSNPs_errors1(self):
-        bed = ld.PlinkBEDFile(Path("test/plink_test/plink.bed"), self.N, self.bim)
+        bed = ld.PlinkBEDFile(Path("tests/plink_test/plink.bed"), self.N, self.bim)
         bed.nextSNPs(0)
 
     @nose.tools.raises(ValueError)
     def test_nextSNPs_errors2(self):
-        bed = ld.PlinkBEDFile(Path("test/plink_test/plink.bed"), self.N, self.bim)
+        bed = ld.PlinkBEDFile(Path("tests/plink_test/plink.bed"), self.N, self.bim)
         bed.nextSNPs(5)
 
     def test_nextSNPs(self):
         for b in [1, 2, 3]:
-            bed = ld.PlinkBEDFile(Path("test/plink_test/plink.bed"), self.N, self.bim)
+            bed = ld.PlinkBEDFile(Path("tests/plink_test/plink.bed"), self.N, self.bim)
             x = bed.nextSNPs(b)
             assert x.shape == (5, b)
             assert np.all(np.abs(np.mean(x, axis=0)) < 0.01)
@@ -111,7 +112,7 @@ class test_bed(unittest.TestCase):
 
     def test_nextSNPs_maf_ref(self):
         b = 4
-        bed = ld.PlinkBEDFile(Path("test/plink_test/plink.bed"), self.N, self.bim)
+        bed = ld.PlinkBEDFile(Path("tests/plink_test/plink.bed"), self.N, self.bim)
         x = bed.nextSNPs(b)
         bed._currentSNP -= b
         y = bed.nextSNPs(b, minorRef=True)

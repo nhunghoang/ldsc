@@ -1,10 +1,15 @@
-import munge_sumstats as munge
+from pathlib import Path
+import ldsc.munge_sumstats as munge
 import unittest
 import numpy as np
 import pandas as pd
 import nose
 from pandas.testing import assert_series_equal, assert_frame_equal
 from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
+from ldsc.parsers import generate_parser
+
+# make a parser for the analysis
+parser = generate_parser()
 
 
 class Mock(object):
@@ -20,7 +25,7 @@ class Mock(object):
 
 
 log = Mock()
-args = munge.parser.parse_args("")
+args = parser.parse_args(["munge_sumstats", "--sumstats", ""])
 
 
 class test_p_to_z(unittest.TestCase):
@@ -55,7 +60,7 @@ class test_process_n(unittest.TestCase):
         self.dat_filtered["N"] = [1234, 1234.0]
         self.dat_filtered9999 = pd.DataFrame(["rs2", "rs3"], columns=["SNP"])
         self.dat_filtered9999["N"] = [9999, 9999.0]
-        self.args = munge.parser.parse_args("")
+        self.args = parser.parse_args(["munge_sumstats", "--sumstats", ""])
         # these flags are either re-set in test cases or should be overridden
         self.args.N = 9999.0
         self.args.N_cas = 9999.0
@@ -67,36 +72,35 @@ class test_process_n(unittest.TestCase):
 
     def test_n_col(self):
         self.dat["N"] = self.N
-        dat = munge.process_n(self.dat, self.args, log)
-        print(dat)
-        print(self.dat_filtered)
+        dat = munge.process_n(self.dat, self.args)
+
         assert_frame_equal(dat, self.dat_filtered)
 
     def test_nstudy(self):
         # should filter on NSTUDY if the --N flag is set, but N gets set to
         # 9999
         self.dat["NSTUDY"] = self.N
-        dat = munge.process_n(self.dat, self.args, log)
+        dat = munge.process_n(self.dat, self.args)
         assert_frame_equal(dat, self.dat_filtered9999)
 
     def test_n_cas_con_col(self):
         self.dat["N_CAS"] = self.N
         self.dat["N_CON"] = [0.0, 0, 0]
-        dat = munge.process_n(self.dat, self.args, log)
+        dat = munge.process_n(self.dat, self.args)
         assert_frame_equal(dat, self.dat_filtered)
 
     def test_n_flag(self):
         self.args.N = 1234.0
         self.args.N_cas = None
         self.args.N_con = None
-        dat = munge.process_n(self.dat, self.args, log)
+        dat = munge.process_n(self.dat, self.args)
         assert_series_equal(dat.N, self.N_const, check_names=False)
 
     def test_n_cas_con_flag(self):
         self.args.N = None
         self.args.N_cas = 1000.0
         self.args.N_con = 234.0
-        dat = munge.process_n(self.dat, self.args, log)
+        dat = munge.process_n(self.dat, self.args)
         assert_series_equal(dat.N, self.N_const, check_names=False)
 
 
@@ -149,7 +153,7 @@ class test_allele_merge(unittest.TestCase):
         self.alleles.columns = ["SNP", "MA"]
 
     def test_merge(self):
-        x = munge.allele_merge(self.dat, self.alleles, log)
+        x = munge.allele_merge(self.dat, self.alleles)
         answer = pd.DataFrame(
             np.transpose(
                 [["a", "extra", "b", "c"], ["a", "a", "T", "C"], ["a", "a", "G", "A"]]
@@ -173,10 +177,10 @@ class test_parse_dat(unittest.TestCase):
         self.dat = dat
         self.dat_gen = [dat.loc[0:4, :], dat.loc[5:9, :].reset_index(drop=True)]
         self.convert_colname = {x: x for x in self.dat_gen[0].columns}
-        self.args = munge.parser.parse_args("")
+        self.args = parser.parse_args(["munge_sumstats", "--sumstats", ""])
 
     def tearDown(self):
-        args = munge.parser.parse_args("")
+        args = parser.parse_args(["munge_sumstats", "--sumstats", ""])
 
     def test_no_alleles(self):
         # test that it doesn't crash with no allele columns and the
@@ -184,7 +188,7 @@ class test_parse_dat(unittest.TestCase):
         dat = self.dat.drop(["A1", "A2"], axis=1)
         dat_gen = [dat.loc[0:4, :], dat.loc[5:9, :].reset_index(drop=True)]
         self.args.no_alleles = True
-        dat = munge.parse_dat(dat_gen, self.convert_colname, None, log, self.args)
+        dat = munge.parse_dat(dat_gen, self.convert_colname, None, self.args)
         assert_frame_equal(dat, self.dat.drop(["INFO", "FRQ", "A1", "A2"], axis=1))
 
     def test_merge_alleles(self):
@@ -193,13 +197,13 @@ class test_parse_dat(unittest.TestCase):
         merge_alleles["SNP"] = ["rs" + str(i) for i in range(3)]
         merge_alleles["MA"] = ["AG", "AG", "AG"]
         dat = munge.parse_dat(
-            self.dat_gen, self.convert_colname, merge_alleles, log, self.args
+            self.dat_gen, self.convert_colname, merge_alleles, self.args
         )
-        print(self.dat.loc[0:2, ["SNP", "A1", "A2", "P"]])
+
         assert_frame_equal(dat, self.dat.loc[0:2, ["SNP", "A1", "A2", "P"]])
 
     def test_standard(self):
-        dat = munge.parse_dat(self.dat_gen, self.convert_colname, None, log, self.args)
+        dat = munge.parse_dat(self.dat_gen, self.convert_colname, None, self.args)
         assert_frame_equal(dat, self.dat.drop(["INFO", "FRQ"], axis=1))
 
     def test_na(self):
@@ -209,7 +213,7 @@ class test_parse_dat(unittest.TestCase):
             self.dat.loc[0:4, :],
             self.dat.loc[5:9, :].reset_index(drop=True),
         ]
-        dat = munge.parse_dat(self.dat_gen, self.convert_colname, None, log, self.args)
+        dat = munge.parse_dat(self.dat_gen, self.convert_colname, None, self.args)
         assert_frame_equal(
             dat, self.dat.loc[2:, ["SNP", "A1", "A2", "P"]].reset_index(drop=True)
         )
@@ -231,7 +235,7 @@ def test_get_compression_gzip():
 class test_parse_flag_cnames(unittest.TestCase):
 
     def setUp(self):
-        self.args = munge.parser.parse_args("")
+        self.args = parser.parse_args(["munge_sumstats", "--sumstats", ""])
 
     def test_basic(self):
         self.args.nstudy = "nstudy1"
@@ -246,7 +250,7 @@ class test_parse_flag_cnames(unittest.TestCase):
         self.args.info = "info1"
         self.args.info_list = "info111,info222"
         self.args.signed_sumstats = "beta1,0"
-        x, y = munge.parse_flag_cnames(log, self.args)
+        x, y = munge.parse_flag_cnames(self.args)
         self.assertEqual(y, 0)
         self.assertEqual(x["NSTUDY1"], "NSTUDY")
         self.assertEqual(x["SNP1"], "SNP")
@@ -263,11 +267,11 @@ class test_parse_flag_cnames(unittest.TestCase):
 
     def test_sign_error(self):
         self.args.signed_sumstats = "1,2,3"
-        nose.tools.assert_raises(ValueError, munge.parse_flag_cnames, log, self.args)
+        nose.tools.assert_raises(ValueError, munge.parse_flag_cnames, self.args)
         self.args.signed_sumstats = "BETA,B"
-        nose.tools.assert_raises(ValueError, munge.parse_flag_cnames, log, self.args)
+        nose.tools.assert_raises(ValueError, munge.parse_flag_cnames, self.args)
         self.args.signed_sumstats = "BETA"
-        nose.tools.assert_raises(ValueError, munge.parse_flag_cnames, log, self.args)
+        nose.tools.assert_raises(ValueError, munge.parse_flag_cnames, self.args)
 
 
 class test_cname_map(unittest.TestCase):
@@ -297,47 +301,34 @@ class test_cname_map(unittest.TestCase):
 class test_end_to_end(unittest.TestCase):
 
     def setUp(self):
-        self.args = munge.parser.parse_args("")
-        self.args.sumstats = "test/munge_test/sumstats"
-        self.args.out = "asdf"
+        self.args = parser.parse_args(["munge_sumstats", "--sumstats", ""])
+        self.args.sumstats = Path("tests/munge_test/sumstats")
+        self.args.out = Path("asdf")
         self.args.daner = True
 
     def test_basic(self):
-        x = munge.munge_sumstats(self.args, p=False)
+        x = munge.munge_sumstats(self.args)
         correct = pd.read_csv(
-            "test/munge_test/correct.sumstats", delim_whitespace=True, header=0
+            "tests/munge_test/correct.sumstats", delim_whitespace=True, header=0
         )
         assert_frame_equal(x, correct)
 
     def test_merge_alleles(self):
-        self.args.merge_alleles = "test/munge_test/merge_alleles"
-        x = munge.munge_sumstats(self.args, p=False)
+        self.args.merge_alleles = Path("tests/munge_test/merge_alleles")
+        x = munge.munge_sumstats(self.args)
         correct = pd.read_csv(
-            "test/munge_test/correct_merge.sumstats", delim_whitespace=True, header=0
+            "tests/munge_test/correct_merge.sumstats", delim_whitespace=True, header=0
         )
         assert_frame_equal(x, correct)
 
     def test_bad_merge_alleles(self):
-        self.args.merge_alleles = "test/munge_test/merge_alleles_bad"
-        nose.tools.assert_raises(ValueError, munge.munge_sumstats, self.args, p=False)
-
-    def test_bad_flags1(self):
-        self.args.sumstats = None
-        nose.tools.assert_raises(ValueError, munge.munge_sumstats, self.args, p=False)
+        self.args.merge_alleles = "tests/munge_test/merge_alleles_bad"
+        nose.tools.assert_raises(ValueError, munge.munge_sumstats, self.args)
 
     def test_bad_flags2(self):
         self.args.out = None
-        nose.tools.assert_raises(ValueError, munge.munge_sumstats, self.args, p=False)
-
-    def test_bad_flags3(self):
-        self.args.merge_alleles = "foo"
-        self.args.no_alleles = "bar"
-        nose.tools.assert_raises(ValueError, munge.munge_sumstats, self.args, p=False)
+        nose.tools.assert_raises(ValueError, munge.munge_sumstats, self.args)
 
     def test_bad_sumstats1(self):
         self.args.signed_sumstats = "OR,0"
-        nose.tools.assert_raises(ValueError, munge.munge_sumstats, self.args, p=False)
-
-    def test_bad_sumstats1(self):
-        self.args.signed_sumstats = "BETA,0"
-        nose.tools.assert_raises(ValueError, munge.munge_sumstats, self.args, p=False)
+        nose.tools.assert_raises(ValueError, munge.munge_sumstats, self.args)

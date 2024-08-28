@@ -13,7 +13,7 @@ class MungeSumstatsconfig(ParserConfig):
         """Add the appropriate flags and subcommands to the ldsc parser"""
 
         parser.add_argument(
-            "--sumstats", default=None, type=Path, help="Input filename.", required=True
+            "--sumstats", type=Path, help="Input filename.", required=True
         )
 
         parser.add_argument(

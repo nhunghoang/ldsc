@@ -14,7 +14,6 @@ h22 = 0.6
 
 
 def print_ld(x, fh, M):
-    print(f"fh: {fh}")
 
     l2 = ".l2.ldscore"
     m = ".l2.M_5_50"
@@ -47,27 +46,27 @@ ld = pd.DataFrame(
 # 2 LD Scores 2 files
 split_ldsc = ld.copy()
 split_ldsc["LD"] = two_ldsc[:, 0]
-print_ld(split_ldsc, "test/simulate_test/ldscore/twold_firstfile", [M_two[0]])
+print_ld(split_ldsc, "tests/simulate_test/ldscore/twold_firstfile", [M_two[0]])
 split_ldsc = ld.copy()
 split_ldsc["LD"] = two_ldsc[:, 1]  # both have same colname to test that this is ok
-print_ld(split_ldsc, "test/simulate_test/ldscore/twold_secondfile", [M_two[1]])
+print_ld(split_ldsc, "tests/simulate_test/ldscore/twold_secondfile", [M_two[1]])
 
 # 1 LD Score 1 file
 ldsc = ld.copy()
 ldsc["LD"] = single_ldsc
-print_ld(ldsc, "test/simulate_test/ldscore/oneld_onefile", [M])
+print_ld(ldsc, "tests/simulate_test/ldscore/oneld_onefile", [M])
 
 # 2 LD Scores 1 file
 ldsc = ld.copy()
 ldsc["LD1"] = two_ldsc[:, 0]
 ldsc["LD2"] = two_ldsc[:, 1]
-print_ld(ldsc, "test/simulate_test/ldscore/twold_onefile", M_two)
+print_ld(ldsc, "tests/simulate_test/ldscore/twold_onefile", M_two)
 
 # Weight LD Scores
 w_ld = ld.copy()
 w_ld["LD"] = np.ones(N_SNP)
 w_ld.to_csv(
-    "test/simulate_test/ldscore/w.l2.ldscore",
+    "tests/simulate_test/ldscore/w.l2.ldscore",
     index=False,
     sep="\t",
     float_format="%.3f",
@@ -96,7 +95,7 @@ for i in range(N_SIMS):
     dfi["Z"] = z
     dfi.reindex(np.random.permutation(dfi.index))
     dfi.to_csv(
-        "test/simulate_test/sumstats/" + str(i),
+        "tests/simulate_test/sumstats/" + str(i),
         sep="\t",
         index=False,
         float_format="%.3f",

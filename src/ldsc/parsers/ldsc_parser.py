@@ -271,7 +271,7 @@ class LDSCconfig(ParserConfig):
         )
         ref_ld_group.add_argument(
             "--ref-ld-chr",
-            default=None,
+            default=Path(""),
             type=Path,
             help="Same as --ref-ld, but will automatically concatenate .l2.ldscore files split "
             "across 22 chromosomes. LDSC will automatically append .l2.ldscore/.l2.ldscore.gz "

@@ -4,12 +4,13 @@ import ldsc.ldscore.parse as ps
 import unittest
 import numpy as np
 import pandas as pd
-from pandas.testing import assert_series_equal, assert_frame_equal
+from pandas.testing import assert_series_equal
 from nose.tools import *
 from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
 from nose.plugins.attrib import attr
 import os
 from ldsc.parsers import generate_parser
+
 
 DIR = Path(os.path.dirname(__file__))
 
@@ -38,174 +39,164 @@ parser = generate_parser()
 t = lambda attr: lambda obj: getattr(obj, attr, float("nan"))
 
 
-def test_check_condnum():
-    x = np.ones((2, 2))
-    x[1, 1] += 1e-5
-    args.invert_anyway = False
-    assert_raises(ValueError, s._check_ld_condnum, args, log, x)
-    args.invert_anyway = True
-    s._check_ld_condnum(args, log, x)  # no error
+class functionalTest(unittest.TestCase):
+    def test_check_condnum(self):
+        x = np.ones((2, 2))
+        x[1, 1] += 1e-5
+        args.invert_anyway = False
+        self.assertRaises(ValueError, s._check_ld_condnum, args, x)
+        args.invert_anyway = True
+        s._check_ld_condnum(args, x)  # no error
 
+    def test_check_variance(self):
+        ld = pd.DataFrame(
+            {
+                "SNP": ["a", "b", "c"],
+                "LD1": np.ones(3).astype(float),
+                "LD2": np.arange(3).astype(float),
+            }
+        )
+        ld = ld[["SNP", "LD1", "LD2"]]
+        M_annot = np.array([[1, 2]])
+        M_annot, ld, novar_col = s._check_variance(M_annot, ld)
+        assert_array_equal(M_annot.shape, (1, 1))
+        assert_array_equal(M_annot, [[2]])
+        assert_allclose(ld.iloc[:, 1], [0, 1, 2])
+        assert_array_equal(novar_col, [True, False])
 
-def test_check_variance():
-    ld = pd.DataFrame(
-        {
-            "SNP": ["a", "b", "c"],
-            "LD1": np.ones(3).astype(float),
-            "LD2": np.arange(3).astype(float),
+    def test_align_alleles(self):
+        beta = pd.Series(np.ones(6))
+        alleles = pd.Series(["ACAC", "TGTG", "GTGT", "AGCT", "AGTC", "TCTC"])
+        beta = s._align_alleles(beta, alleles)
+        assert_series_equal(beta, pd.Series([1.0, 1, 1, -1, 1, 1]))
+
+    def test_filter_bad_alleles(self):
+        alleles = pd.Series(["ATAT", "ATAG", "DIID", "ACAC"])
+        bad_alleles = s._filter_alleles(alleles)
+        # print(bad_alleles)
+        assert_series_equal(bad_alleles, pd.Series([False, False, False, True]))
+
+    def test_read_annot(self):
+        ref_ld_chr = None
+        ref_ld = DIR / "annot_test/test"
+        overlap_matrix, M_tot = s._read_chr_split_files(
+            ref_ld_chr, ref_ld, "annot matrix", ps.annot, frqfile=None
+        )
+        assert_array_equal(overlap_matrix, [[1, 0, 0], [0, 2, 2], [0, 2, 2]])
+        assert_array_equal(M_tot, 3)
+
+        frqfile = DIR / "annot_test/test1"
+        overlap_matrix, M_tot = s._read_chr_split_files(
+            ref_ld_chr, ref_ld, "annot matrix", ps.annot, frqfile=frqfile
+        )
+        assert_array_equal(overlap_matrix, [[1, 0, 0], [0, 1, 1], [0, 1, 1]])
+        assert_array_equal(M_tot, 2)
+
+    def test_valid_snps(self):
+        x = {"AC", "AG", "CA", "CT", "GA", "GT", "TC", "TG"}
+        self.assertEqual(x, s.VALID_SNPS)
+
+    def test_bases(self):
+        x = set(["A", "T", "G", "C"])
+        self.assertEqual(x, set(s.BASES))
+
+    def test_complement(self):
+        self.assertEqual(s.COMPLEMENT, {"A": "T", "T": "A", "C": "G", "G": "C"})
+
+    def test_warn_len(self):
+        # nothing to test except that it doesn't throw an error at runtime
+        s._warn_length([1])
+
+    def test_match_alleles(self):
+        m = {
+            "ACAC",
+            "ACCA",
+            "ACGT",
+            "ACTG",
+            "AGAG",
+            "AGCT",
+            "AGGA",
+            "AGTC",
+            "CAAC",
+            "CACA",
+            "CAGT",
+            "CATG",
+            "CTAG",
+            "CTCT",
+            "CTGA",
+            "CTTC",
+            "GAAG",
+            "GACT",
+            "GAGA",
+            "GATC",
+            "GTAC",
+            "GTCA",
+            "GTGT",
+            "GTTG",
+            "TCAG",
+            "TCCT",
+            "TCGA",
+            "TCTC",
+            "TGAC",
+            "TGCA",
+            "TGGT",
+            "TGTG",
         }
-    )
-    ld = ld[["SNP", "LD1", "LD2"]]
-    M_annot = np.array([[1, 2]])
-    M_annot, ld, novar_col = s._check_variance(log, M_annot, ld)
-    assert_array_equal(M_annot.shape, (1, 1))
-    assert_array_equal(M_annot, [[2]])
-    assert_allclose(ld.iloc[:, 1], [0, 1, 2])
-    assert_array_equal(novar_col, [True, False])
+        self.assertEqual(m, s.MATCH_ALLELES)
 
+    def test_flip_alleles(self):
+        m = {
+            "ACAC": False,
+            "ACCA": True,
+            "ACGT": True,
+            "ACTG": False,
+            "AGAG": False,
+            "AGCT": True,
+            "AGGA": True,
+            "AGTC": False,
+            "CAAC": True,
+            "CACA": False,
+            "CAGT": False,
+            "CATG": True,
+            "CTAG": True,
+            "CTCT": False,
+            "CTGA": False,
+            "CTTC": True,
+            "GAAG": True,
+            "GACT": False,
+            "GAGA": False,
+            "GATC": True,
+            "GTAC": True,
+            "GTCA": False,
+            "GTGT": False,
+            "GTTG": True,
+            "TCAG": False,
+            "TCCT": True,
+            "TCGA": True,
+            "TCTC": False,
+            "TGAC": False,
+            "TGCA": True,
+            "TGGT": True,
+            "TGTG": False,
+        }
+        self.assertEqual(m, s.FLIP_ALLELES)
 
-def test_align_alleles():
-    beta = pd.Series(np.ones(6))
-    alleles = pd.Series(["ACAC", "TGTG", "GTGT", "AGCT", "AGTC", "TCTC"])
-    beta = s._align_alleles(beta, alleles)
-    assert_series_equal(beta, pd.Series([1.0, 1, 1, -1, 1, 1]))
-
-
-def test_filter_bad_alleles():
-    alleles = pd.Series(["ATAT", "ATAG", "DIID", "ACAC"])
-    bad_alleles = s._filter_alleles(alleles)
-    print(bad_alleles)
-    assert_series_equal(bad_alleles, pd.Series([False, False, False, True]))
-
-
-def test_read_annot():
-    ref_ld_chr = None
-    ref_ld = os.path.join(DIR, "annot_test/test")
-    overlap_matrix, M_tot = s._read_chr_split_files(
-        ref_ld_chr, ref_ld, log, "annot matrix", ps.annot, frqfile=None
-    )
-    assert_array_equal(overlap_matrix, [[1, 0, 0], [0, 2, 2], [0, 2, 2]])
-    assert_array_equal(M_tot, 3)
-
-    frqfile = os.path.join(DIR, "annot_test/test1")
-    overlap_matrix, M_tot = s._read_chr_split_files(
-        ref_ld_chr, ref_ld, log, "annot matrix", ps.annot, frqfile=frqfile
-    )
-    assert_array_equal(overlap_matrix, [[1, 0, 0], [0, 1, 1], [0, 1, 1]])
-    assert_array_equal(M_tot, 2)
-
-
-def test_valid_snps():
-    x = {"AC", "AG", "CA", "CT", "GA", "GT", "TC", "TG"}
-    assert_equal(x, s.VALID_SNPS)
-
-
-def test_bases():
-    x = set(["A", "T", "G", "C"])
-    assert_equal(x, set(s.BASES))
-
-
-def test_complement():
-    assert_equal(s.COMPLEMENT, {"A": "T", "T": "A", "C": "G", "G": "C"})
-
-
-def test_warn_len():
-    # nothing to test except that it doesn't throw an error at runtime
-    s._warn_length(log, [1])
-
-
-def test_match_alleles():
-    m = {
-        "ACAC",
-        "ACCA",
-        "ACGT",
-        "ACTG",
-        "AGAG",
-        "AGCT",
-        "AGGA",
-        "AGTC",
-        "CAAC",
-        "CACA",
-        "CAGT",
-        "CATG",
-        "CTAG",
-        "CTCT",
-        "CTGA",
-        "CTTC",
-        "GAAG",
-        "GACT",
-        "GAGA",
-        "GATC",
-        "GTAC",
-        "GTCA",
-        "GTGT",
-        "GTTG",
-        "TCAG",
-        "TCCT",
-        "TCGA",
-        "TCTC",
-        "TGAC",
-        "TGCA",
-        "TGGT",
-        "TGTG",
-    }
-    assert_equal(m, s.MATCH_ALLELES)
-
-
-def test_flip_alleles():
-    m = {
-        "ACAC": False,
-        "ACCA": True,
-        "ACGT": True,
-        "ACTG": False,
-        "AGAG": False,
-        "AGCT": True,
-        "AGGA": True,
-        "AGTC": False,
-        "CAAC": True,
-        "CACA": False,
-        "CAGT": False,
-        "CATG": True,
-        "CTAG": True,
-        "CTCT": False,
-        "CTGA": False,
-        "CTTC": True,
-        "GAAG": True,
-        "GACT": False,
-        "GAGA": False,
-        "GATC": True,
-        "GTAC": True,
-        "GTCA": False,
-        "GTGT": False,
-        "GTTG": True,
-        "TCAG": False,
-        "TCCT": True,
-        "TCGA": True,
-        "TCTC": False,
-        "TGAC": False,
-        "TGCA": True,
-        "TGGT": True,
-        "TGTG": False,
-    }
-    assert_equal(m, s.FLIP_ALLELES)
-
-
-def test_strand_ambiguous():
-    m = {
-        "AC": False,
-        "AG": False,
-        "AT": True,
-        "CA": False,
-        "CG": True,
-        "CT": False,
-        "GA": False,
-        "GC": True,
-        "GT": False,
-        "TA": True,
-        "TC": False,
-        "TG": False,
-    }
-    assert_equal(m, s.STRAND_AMBIGUOUS)
+    def test_strand_ambiguous(self):
+        m = {
+            "AC": False,
+            "AG": False,
+            "AT": True,
+            "CA": False,
+            "CG": True,
+            "CT": False,
+            "GA": False,
+            "GC": True,
+            "GT": False,
+            "TA": True,
+            "TC": False,
+            "TG": False,
+        }
+        self.assertEqual(m, s.STRAND_AMBIGUOUS)
 
 
 @attr("rg")
@@ -214,17 +205,15 @@ class Test_RG_Statistical:
 
     @classmethod
     def setUpClass(cls):
-        args = parser.parse_args("")
-        args.ref_ld = DIR + "/simulate_test/ldscore/twold_onefile"
-        args.w_ld = DIR + "/simulate_test/ldscore/w"
-        args.rg = ",".join(
-            (DIR + "/simulate_test/sumstats/" + str(i) for i in range(N_REP))
-        )
-        args.out = DIR + "/simulate_test/1"
-        x = s.estimate_rg(args, log)
+        args = parser.parse_args(["ldsc", "rg"])
+        args.ref_ld = DIR / "/simulate_test/ldscore/twold_onefile"
+        args.w_ld = DIR / "/simulate_test/ldscore/w"
+        args.rg = [DIR / "/simulate_test/sumstats/" + str(i) for i in range(N_REP)]
+        args.out = DIR / "/simulate_test/1"
+        x = s.estimate_rg(args)
         args.intercept_gencov = ",".join(("0" for _ in range(N_REP)))
         args.intercept_h2 = ",".join(("1" for _ in range(N_REP)))
-        y = s.estimate_rg(args, log)
+        y = s.estimate_rg(args)
         cls.rg = x
         cls.rg_noint = y
 
@@ -341,7 +330,7 @@ class Test_H2_Statistical(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        args = parser.parse_args("")
+        args = parser.parse_args(["ldsc", "h2"])
         args.ref_ld = DIR / "simulate_test/ldscore/twold_onefile"
         args.w_ld = DIR / "simulate_test/ldscore/w"
         args.chisq_max = 99999
@@ -351,9 +340,9 @@ class Test_H2_Statistical(unittest.TestCase):
             args.intercept_h2 = None
             args.h2 = DIR / f"simulate_test/sumstats/{i}"
             args.out = DIR / "simulate_test/1"
-            h2.append(s.estimate_h2(args, log))
+            h2.append(s.estimate_h2(args))
             args.intercept_h2 = 1
-            h2_noint.append(s.estimate_h2(args, log))
+            h2_noint.append(s.estimate_h2(args))
 
         cls.h2 = h2
         cls.h2_noint = h2_noint
@@ -441,41 +430,42 @@ class Test_H2_Statistical(unittest.TestCase):
 class Test_Estimate(unittest.TestCase):
 
     def test_h2_M(self):  # check --M works
-        args = parser.parse_args("")
+        args = parser.parse_args(["ldsc", "h2"])
         args.ref_ld = DIR / "simulate_test/ldscore/oneld_onefile"
         args.w_ld = DIR / "simulate_test/ldscore/w"
         args.h2 = DIR / "simulate_test/sumstats/1"
         args.out = DIR / "simulate_test/1"
         args.print_cov = True  # right now just check no runtime errors
         args.print_delete_vals = True
-        x = s.estimate_h2(args, log)
-        args.M = str(
-            float(open(DIR / "simulate_test/ldscore/oneld_onefile.l2.M_5_50").read())
-        )
-        y = s.estimate_h2(args, log)
+        x = s.estimate_h2(args)
+        with open(
+            DIR / "simulate_test/ldscore/oneld_onefile.l2.M_5_50", "r"
+        ) as test_file:
+            args.M = str(float(test_file.read()))
+        y = s.estimate_h2(args)
         assert_array_almost_equal(x.tot, y.tot)
         assert_array_almost_equal(x.tot_se, y.tot_se)
         args.M = "1,2"
-        self.assertRaises(ValueError, s.estimate_h2, args, log)
+        self.assertRaises(ValueError, s.estimate_h2, args)
         args.M = "foo_bar"
-        self.assertRaises(ValueError, s.estimate_h2, args, log)
+        self.assertRaises(ValueError, s.estimate_h2, args)
 
     def test_h2_ref_ld(self):  # test different ways of reading ref ld
-        args = parser.parse_args("")
+        args = parser.parse_args(["ldsc", "h2"])
         args.ref_ld_chr = DIR / "simulate_test/ldscore/twold_onefile"
         args.w_ld = DIR / "simulate_test/ldscore/w"
         args.h2 = DIR / "simulate_test/sumstats/555"
         args.out = DIR / "simulate_test/"
-        x = s.estimate_h2(args, log)
+        x = s.estimate_h2(args)
         args.ref_ld = str(DIR / "simulate_test/ldscore/twold_firstfile,") + str(
             DIR / "simulate_test/ldscore/twold_secondfile"
         )
-        y = s.estimate_h2(args, log)
+        y = s.estimate_h2(args)
         args.ref_ld_chr = str(DIR / "simulate_test/ldscore/twold_firstfile,") + str(
             DIR / "simulate_test/ldscore/twold_secondfile"
         )
-        z = s.estimate_h2(args, log)
-        assert_almost_equal(x.tot, y.tot)
+        z = s.estimate_h2(args)
+        self.assertAlmostEqual(x.tot, y.tot)
         assert_array_almost_equal(y.cat, z.cat)
         assert_array_almost_equal(x.prop, y.prop)
         assert_array_almost_equal(y.coef, z.coef)
@@ -487,87 +477,84 @@ class Test_Estimate(unittest.TestCase):
 
     # test statistical properties (constrain intercept here)
     def test_rg_M(self):
-        args = parser.parse_args("")
+        args = parser.parse_args(["ldsc", "rg"])
         args.ref_ld = DIR / "simulate_test/ldscore/oneld_onefile"
         args.w_ld = DIR / "simulate_test/ldscore/w"
-        args.rg = ",".join([str(DIR / "simulate_test/sumstats/1") for _ in range(2)])
+        args.rg = [DIR / "simulate_test/sumstats/1" for _ in range(2)]
         args.out = DIR / "simulate_test/1"
-        x = s.estimate_rg(args, log)[0]
-        args.M = (
-            open(DIR / "simulate_test/ldscore/oneld_onefile.l2.M_5_50", "r")
-            .read()
-            .rstrip("\n")
-        )
-        y = s.estimate_rg(args, log)[0]
+        x = s.estimate_rg(args)[0]
+        with open(DIR / "simulate_test/ldscore/oneld_onefile.l2.M_5_50", "r") as m_file:
+            args.M = m_file.read().rstrip("\n")
+        y = s.estimate_rg(args)[0]
         assert_array_almost_equal(x.rg_ratio, y.rg_ratio)
         assert_array_almost_equal(x.rg_se, y.rg_se)
         args.M = "1,2"
-        self.assertRaises(ValueError, s.estimate_rg, args, log)
+        self.assertRaises(ValueError, s.estimate_rg, args)
         args.M = "foo_bar"
-        self.assertRaises(ValueError, s.estimate_rg, args, log)
+        self.assertRaises(ValueError, s.estimate_rg, args)
 
     def test_rg_ref_ld(self):
-        args = parser.parse_args("")
+        args = parser.parse_args(["ldsc", "rg"])
         args.ref_ld_chr = DIR / "simulate_test/ldscore/twold_onefile"
         args.w_ld = DIR / "simulate_test/ldscore/w"
-        args.rg = ",".join([str(DIR / "simulate_test/sumstats/1") for _ in range(2)])
+        args.rg = [DIR / "simulate_test/sumstats/1" for _ in range(2)]
         args.out = DIR / "simulate_test/1"
         args.print_cov = True  # right now just check no runtime errors
         args.print_delete_vals = True
-        x = s.estimate_rg(args, log)[0]
+        x = s.estimate_rg(args)[0]
         args.ref_ld = str(DIR / "simulate_test/ldscore/twold_firstfile,") + str(
             DIR / "simulate_test/ldscore/twold_secondfile"
         )
-        y = s.estimate_rg(args, log)[0]
+        y = s.estimate_rg(args)[0]
         args.ref_ld_chr = str(DIR / "simulate_test/ldscore/twold_firstfile,") + str(
             DIR / "simulate_test/ldscore/twold_secondfile"
         )
-        z = s.estimate_rg(args, log)[0]
-        assert_almost_equal(x.rg_ratio, y.rg_ratio)
-        assert_almost_equal(y.rg_jknife, z.rg_jknife)
-        assert_almost_equal(x.rg_se, y.rg_se)
+        z = s.estimate_rg(args)[0]
+        self.assertAlmostEqual(x.rg_ratio, y.rg_ratio)
+        self.assertAlmostEqual(y.rg_jknife, z.rg_jknife)
+        self.assertAlmostEqual(x.rg_se, y.rg_se)
 
     def test_no_check_alleles(self):
-        args = parser.parse_args("")
+        args = parser.parse_args(["ldsc", "rg"])
         args.ref_ld = DIR / "simulate_test/ldscore/oneld_onefile"
         args.w_ld = DIR / "simulate_test/ldscore/w"
-        args.rg = ",".join([str(DIR / "simulate_test/sumstats/1") for _ in range(2)])
+        args.rg = [DIR / "simulate_test/sumstats/1" for _ in range(2)]
         args.out = DIR / "simulate_test/1"
-        x = s.estimate_rg(args, log)[0]
+        x = s.estimate_rg(args)[0]
         args.no_check_alleles = True
-        y = s.estimate_rg(args, log)[0]
+        y = s.estimate_rg(args)[0]
         self.assertEqual(x.rg_ratio, y.rg_ratio)
-        assert_almost_equal(x.rg_jknife, y.rg_jknife)
+        self.assertAlmostEqual(x.rg_jknife, y.rg_jknife)
         self.assertEqual(x.rg_se, y.rg_se)
 
     def test_twostep_h2(self):
         # make sure two step isn't going crazy
-        args = parser.parse_args("")
+        args = parser.parse_args(["ldsc", "h2"])
         args.ref_ld = DIR / "simulate_test/ldscore/oneld_onefile"
         args.w_ld = DIR / "simulate_test/ldscore/w"
         args.h2 = DIR / "simulate_test/sumstats/1"
         args.out = DIR / "simulate_test/1"
         args.chisq_max = 9999999
         args.two_step = 999
-        x = s.estimate_h2(args, log)
+        x = s.estimate_h2(args)
         args.chisq_max = 9999
         args.two_step = 99999
-        y = s.estimate_h2(args, log)
+        y = s.estimate_h2(args)
         assert_allclose(x.tot, y.tot, atol=1e-5)
 
     def test_twostep_rg(self):
         # make sure two step isn't going crazy
-        args = parser.parse_args("")
+        args = parser.parse_args(["ldsc", "rg"])
 
         args.ref_ld_chr = DIR / "simulate_test/ldscore/oneld_onefile"
         args.w_ld = DIR / "simulate_test/ldscore/w"
         rg_path = DIR / "simulate_test/sumstats/1"
 
-        args.rg = ",".join([str(rg_path) for _ in range(2)])
+        args.rg = [Path(str(rg_path)) for _ in range(2)]
         args.out = DIR / "simulate_test/rg"
         args.two_step = 999
-        x = s.estimate_rg(args, log)[0]
+        x = s.estimate_rg(args)[0]
         args.two_step = 99999
-        y = s.estimate_rg(args, log)[0]
+        y = s.estimate_rg(args)[0]
         assert_allclose(x.rg_ratio, y.rg_ratio, atol=1e-5)
         assert_allclose(x.gencov.tot, y.gencov.tot, atol=1e-5)

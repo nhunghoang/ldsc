@@ -3,6 +3,7 @@
 from typing import Any
 import pandas as pd
 import numpy as np
+from .check_munge_args import check_munge_args
 
 import sys
 
@@ -155,7 +156,6 @@ def get_cname_map(flag, default, ignore):
         {x: default[x] for x in default if x not in clean_ignore + list(flag.keys())}
     )
     return cname_map
-
 
 
 def clean_header(header):
@@ -421,7 +421,7 @@ def parse_flag_cnames(args):
             logger.critical(
                 "The argument to --signed-sumstats should be column header comma number."
             )
-            raise
+            raise ValueError()
 
     return [flag_cnames, null_value]
 
@@ -459,6 +459,7 @@ def allele_merge(dat, alleles):
 # set p = False for testing in order to prevent printing
 def munge_sumstats(args):
 
+    check_munge_args(args)
     file_cnames = read_header(args.sumstats)  # note keys not cleaned
     flag_cnames, signed_sumstat_null = parse_flag_cnames(args)
     if args.ignore:
@@ -614,8 +615,6 @@ def munge_sumstats(args):
         )
     else:
         merge_alleles = None
-
-
 
     # figure out which columns are going to involve sign information, so we can ensure
     # they're read as floats
