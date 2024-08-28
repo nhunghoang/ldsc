@@ -86,7 +86,7 @@ docs/_build/
 test_data/
 *.rg_results
 *.h2_results
-test/simulate_test/
+
 
 # sublime text
 *.idea*
@@ -98,4 +98,5 @@ test/simulate_test/
 # Virtualenvs
 .venv
 
-
+# Nox version test
+.nox

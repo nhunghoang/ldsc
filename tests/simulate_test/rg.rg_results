@@ -1,0 +1,2 @@
+p1	p2	rg	se	z	p	h2_obs	h2_obs_se	h2_int	h2_int_se	gcov_int	gcov_int_se
+/Users/jtbaker/code_projects/ldsc_v2.2.0/ldsc/tests/simulate_test/sumstats/1	/Users/jtbaker/code_projects/ldsc_v2.2.0/ldsc/tests/simulate_test/sumstats/1	1.0009380640929273	0.0017906076143159842	558.9935260469043	0.0	0.9312322401552369	0.09476866772794272	1.3752806003079758	0.5913713196953351	1.3681643796020604	0.5907954566256787
