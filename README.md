@@ -86,6 +86,17 @@ You can also build a wheel in the home directory and install that into a custom 
 pdm build
 ```
 
+*If you do install from github*:
+If ldsc is installed from github we recommend running the unit tests to ensure that the installation was successful. These unit test depend on simulated data so you first have to generate that data. The following commands will help you generate the data, run the test, and clean up afterwards:
+
+```
+pdm simulate 
+
+pdm test
+
+pdm clean
+```
+
 ## Tutorials (This section needs to be updated because the command line API was broken in creating LDSC v3.0.0):
 Short tutorials describing the four basic functions of `ldsc` (estimating LD Scores, h2 and partitioned h2, genetic correlation, the LD Score regression intercept) can be found in the wiki. If you would like to run the tests, please see the wiki.
 
