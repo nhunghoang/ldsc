@@ -5,7 +5,7 @@ __pycache__/
 # C extensions
 *.so
 
-# Distribution / packaging
+# Distribution / packaging / build
 .Python
 env/
 bin/
@@ -23,6 +23,7 @@ var/
 *.egg
 .pdm-python
 .pdm-build
+
 
 # Installer logs
 pip-log.txt
@@ -85,7 +86,7 @@ docs/_build/
 test_data/
 *.rg_results
 *.h2_results
-test/simulate_test/
+
 
 # sublime text
 *.idea*
@@ -93,6 +94,11 @@ test/simulate_test/
 
 # vscode
 .vscode/
+# Virtualenvs
+.venv
+
+# Nox version test
+.nox
 
 # venv
 ldsc_venv/

@@ -1,4 +1,6 @@
-18.8.24 v2.2.0: updated both the h2 and the rg commands so that they record the output within separate files and not just appended at the end of the log files. They are now save to files with the suffixes: h2_results and rg_results respectively
+26.8.24 v2.2.0: refactor dockerfile to a multi-stage build that uses this pdm project structure to install the ldsc package with the ldsc entrypoint just like it installs for the pip install. Still need to fix unit tests before this gets bumped to v3.0.0
+26.8.24 v2.2.0: refactored the package structure to a pdm project for better dependency management.
+23-8-24 v2.2.0: refactored the parsers so that they are originate from the main.py file and then are configured in submodules
 10.4.24 v2.0.2: created a dockerfile so that the pybedtools package could locate bedtools for the make_annot.py script
 09.4.24 v2.0.2: updated a bug where readlines was returning a bytes object instead of a string that broke the list comprehension
 30.01.23 v2.0.1; update a bug introduced in "Fix globbing bug in splitp #221" that broke some flows
@@ -21,8 +23,8 @@
 28.02.17 Fix ValueError in --h2 regarding Series labels from pandas 0.19 (pull #73; commit fa28cca)
 27.02.17 Add --thin-annot and --ldsc-cts options (commit 94b5143)
 12.02.17 Fix empty annotations outputting total LD scores; fix munge_sumstats outputting wrong 
-	 sign on Z scores when sumstats aren't floats; fix error from floats used as indices with 
-	 some versions of pandas (pull #69; commit c42e055)
+	sign on Z scores when sumstats are not floats; fix error from floats used as indices with 
+	some versions of pandas (pull #69; commit c42e055)
 09.11.16 Add support for continuous annotations in partitioned h2 (pull #62; commit f7c3316)
 27.10.16 Fix possibly incorrect log of number of MAF exclusions from munge_sumstats (pull #44; 
 	 commit d853e57); fix typos in LD hub information (commit 285eb69, 091c1fc)
