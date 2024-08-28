@@ -42,7 +42,9 @@ dev = [
 distribution = true
 
 [tool.pdm.scripts]
+simulate = "python3 simulate.py"
 test = "python3 -m unittest discover -s tests/ -p *.py"
+clean = {shell = "rm tests/simulate_test/ldscore/* && rm tests/simulate_test/sumstats/*"}
 
 [tool.pdm.build]
 package-dir = "src"
