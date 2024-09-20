@@ -122,10 +122,10 @@ describe_cname = {
 
 numeric_cols = ['P', 'N', 'N_CAS', 'N_CON', 'Z', 'OR', 'BETA', 'LOG_ODDS', 'INFO', 'FRQ', 'SIGNED_SUMSTAT', 'NSTUDY']
 
-def read_header(fh):
+def read_header(fh, sep):
     '''Read the first line of a file and returns a list with the column names.'''
     (openfunc, compression) = get_compression(fh)
-    return [x.rstrip('\n') for x in openfunc(fh).readline().split()]
+    return [x.rstrip('\n') for x in openfunc(fh).readline().strip().split(sep)]
 
 
 def get_cname_map(flag, default, ignore):
@@ -517,6 +517,10 @@ parser.add_argument('--a1-inc', default=False, action='store_true',
 parser.add_argument('--keep-maf', default=False, action='store_true',
                     help='Keep the MAF column (if one exists).')
 
+## NH edit
+parser.add_argument('--delimiter', default=' ', type=str,
+                    help='Delimiter used in the GWAS input file')
+
 
 # set p = False for testing in order to prevent printing
 def munge_sumstats(args, p=True):
@@ -547,7 +551,7 @@ def munge_sumstats(args, p=True):
             header = header[0:-1]+'\n'
             log.log(header)
 
-        file_cnames = read_header(args.sumstats)  # note keys not cleaned
+        file_cnames = read_header(args.sumstats, args.delimiter)  # note keys not cleaned
         flag_cnames, signed_sumstat_null = parse_flag_cnames(log, args)
         if args.ignore:
             ignore_cnames = [clean_header(x) for x in args.ignore.split(',')]
@@ -677,7 +681,10 @@ def munge_sumstats(args, p=True):
         # figure out which columns are going to involve sign information, so we can ensure
         # they're read as floats
         signed_sumstat_cols = [k for k,v in list(cname_translation.items()) if v=='SIGNED_SUMSTAT']
-        dat_gen = pd.read_csv(args.sumstats, delim_whitespace=True, header=0,
+        #dat_gen = pd.read_csv(args.sumstats, delim_whitespace=True, header=0,
+
+        ## NH edit
+        dat_gen = pd.read_csv(args.sumstats, sep=args.delimiter, header=0,
                 compression=compression, usecols=list(cname_translation.keys()),
                 na_values=['.', 'NA'], iterator=True, chunksize=args.chunksize,
                 dtype={c:np.float64 for c in signed_sumstat_cols})
