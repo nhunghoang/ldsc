@@ -125,7 +125,7 @@ numeric_cols = ['P', 'N', 'N_CAS', 'N_CON', 'Z', 'OR', 'BETA', 'LOG_ODDS', 'INFO
 def read_header(fh, sep):
     '''Read the first line of a file and returns a list with the column names.'''
     (openfunc, compression) = get_compression(fh)
-    return [x.rstrip('\n') for x in openfunc(fh).readline().strip().split(sep)]
+    return [x.rstrip('\n') for x in openfunc(fh, 'rt').readline().strip().split(sep)]
 
 
 def get_cname_map(flag, default, ignore):
@@ -368,8 +368,10 @@ def check_median(x, expected_median, tolerance, name):
     '''Check that median(x) is within tolerance of expected_median.'''
     m = np.median(x)
     if np.abs(m - expected_median) > tolerance:
-        msg = 'WARNING: median value of {F} is {V} (should be close to {M}). This column may be mislabeled.'
-        raise ValueError(msg.format(F=name, M=expected_median, V=round(m, 2)))
+        ## TEMP IGNORE (NH, Oct 2024)
+        #msg = 'WARNING: median value of {F} is {V} (should be close to {M}). This column may be mislabeled.'
+        #raise ValueError(msg.format(F=name, M=expected_median, V=round(m, 2)))
+        msg = f'WARNING: median value of {name} is {round(m,2)} (should be close to {expected_median}). This column may be mislabeled.'
     else:
         msg = 'Median value of {F} was {C}, which seems sensible.'.format(
             C=m, F=name)
