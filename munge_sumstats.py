@@ -332,7 +332,7 @@ def process_n(dat, args, log):
         dat = dat[dat.N >= n_min].reset_index(drop=True)
         new = len(dat)
         log.log('Removed {M} SNPs with N < {MIN} ({N} SNPs remain).'.format(
-            M=old - new, N=new, MIN=n_min))
+            M=old - new, N=new, MIN=round(n_min)))
 
     elif 'NSTUDY' in dat.columns and 'N' not in dat.columns:
         nstudy_min = args.nstudy_min if args.nstudy_min else dat.NSTUDY.max()
@@ -374,7 +374,7 @@ def check_median(x, expected_median, tolerance, name):
         msg = f'WARNING: median value of {name} is {round(m,2)} (should be close to {expected_median}). This column may be mislabeled.'
     else:
         msg = 'Median value of {F} was {C}, which seems sensible.'.format(
-            C=m, F=name)
+            C=round(m,2), F=name)
 
     return msg
 
